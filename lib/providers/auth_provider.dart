@@ -386,7 +386,9 @@ class AuthProvider extends ChangeNotifier {
       }
       await FirebaseAuth.instance.signOut();
     } catch (e) {
-      print('Logout error: $e');
+      if (kDebugMode) {
+        debugPrint('Logout error: $e');
+      }
     }
 
     // Reset state di memory

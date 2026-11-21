@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -57,18 +58,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           if (user['email'] != null) _emailController.text = user['email'];
           if (user['no_telepon'] != null) _phoneController.text = user['no_telepon'];
           if (user['alamat'] != null) _addressController.text = user['alamat'];
-          String? rawAvatar = user['avatar_url'] ?? user['avatar'];
-          if (rawAvatar != null && rawAvatar.isNotEmpty) {
-            if (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://')) {
-              _existingAvatarUrl = rawAvatar;
-            } else {
-              String clean = rawAvatar.replaceFirst('storage/', '').replaceFirst('public/', '');
-              if (clean.startsWith('/')) clean = clean.substring(1);
-              _existingAvatarUrl = 'http://localhost:8000/files/$clean';
-            }
-            if (_existingAvatarUrl != null && _existingAvatarUrl!.contains('127.0.0.1:8000')) {
-              _existingAvatarUrl = _existingAvatarUrl!.replaceAll('127.0.0.1:8000', 'localhost:8000');
-            }
+          final String? rawAvatar = user['avatar_url'] ?? user['avatar'];
+          if (rawAvatar != null && rawAvatar.trim().isNotEmpty) {
+            _existingAvatarUrl = AppConfig.fileUrl(rawAvatar);
           }
         });
       }

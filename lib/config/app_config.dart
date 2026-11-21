@@ -1,6 +1,10 @@
 class AppConfig {
-  // Ganti 1 baris ini ke URL server / domain asli saat build APK production (mis. https://ecotahu.com)
-  static const String host = 'http://localhost:8000';
+  /// Default untuk dev lokal; saat build APK production cukup kirim:
+  /// flutter build apk --release --dart-define=API_HOST=https://domain-kamu.com
+  static const String host = String.fromEnvironment(
+    'API_HOST',
+    defaultValue: 'http://localhost:8000',
+  );
   static const String apiBaseUrl = '$host/api';
 
   static String fileUrl(String? rawPath) {
@@ -8,8 +12,9 @@ class AppConfig {
     String url = rawPath.trim();
 
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      if (host.contains('localhost') && url.contains('127.0.0.1:8000')) {
-        url = url.replaceAll('http://127.0.0.1:8000', host);
+      final loopback = RegExp(r'^http://127\.0\.0\.1:8000');
+      if (loopback.hasMatch(url)) {
+        url = url.replaceFirst(loopback, host);
       }
       return url;
     }

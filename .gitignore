@@ -46,3 +46,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Release Signing Secrets & Debug Symbols (WAJIB jangan di-commit!)
+android/key.properties
+*.jks
+*.keystore
+build/app/outputs/symbols/

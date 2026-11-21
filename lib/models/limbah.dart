@@ -1,4 +1,5 @@
 import 'package:intl/intl.dart';
+import '../config/app_config.dart';
 import 'product.dart';
 
 class Limbah {
@@ -30,25 +31,10 @@ class Limbah {
     double hargaParsed = double.tryParse(json['harga'].toString()) ?? 0.0;
     final formatter = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
     
-    String gambarUrl = ''; 
-    
-    if (json['gambar_url'] != null && json['gambar_url'].toString().trim().isNotEmpty) {
-      gambarUrl = json['gambar_url'].toString().trim();
-    } else if (json['gambar'] != null && json['gambar'].toString().trim().isNotEmpty) {
-      String pathGambar = json['gambar'].toString().trim();
-      
-      if (pathGambar.startsWith('http://') || pathGambar.startsWith('https://')) {
-        gambarUrl = pathGambar;
-      } else {
-        String cleanPath = pathGambar.replaceFirst('storage/', '');
-        if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
-        gambarUrl = 'http://localhost:8000/files/$cleanPath';
-      }
-    }
-
-    if (gambarUrl.isNotEmpty && gambarUrl.contains('127.0.0.1:8000')) {
-      gambarUrl = gambarUrl.replaceFirst('127.0.0.1:8000', 'localhost:8000');
-    }
+    final String rawGambar = (json['gambar_url'] != null && json['gambar_url'].toString().trim().isNotEmpty)
+        ? json['gambar_url'].toString().trim()
+        : (json['gambar']?.toString().trim() ?? '');
+    final String gambarUrl = AppConfig.fileUrl(rawGambar);
 
     double parsedRating = double.tryParse(json['rating']?.toString() ?? '0') ?? 0.0;
     int parsedReviews = int.tryParse(json['reviews_count']?.toString() ?? '0') ?? 0;

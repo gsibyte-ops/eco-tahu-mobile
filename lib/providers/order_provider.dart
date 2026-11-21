@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order.dart';
 
@@ -23,7 +23,9 @@ class OrderProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error loading orders: $e');
+      if (kDebugMode) {
+        debugPrint('Error loading orders: $e');
+      }
     }
   }
 
