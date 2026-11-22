@@ -1051,6 +1051,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                                 resolvedMediaUrl,
                                 width: 88,
                                 height: 88,
+                                cacheWidth: 600,
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                               ),

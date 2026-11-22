@@ -736,6 +736,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: avatarUrl != null
                         ? Image.network(
                             avatarUrl,
+                            cacheWidth: 400,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, size: 60, color: Color(0xFF1E8E5A)),
                           )

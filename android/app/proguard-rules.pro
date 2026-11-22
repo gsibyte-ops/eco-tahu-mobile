@@ -18,3 +18,6 @@
 -dontwarn okio.**
 -keep class com.google.android.exoplayer2.** { *; }
 -keep class androidx.media3.** { *; }
+
+# Flutter deferred components optional Play Core references (AGP 8/9+ R8)
+-dontwarn com.google.android.play.core.**

@@ -657,6 +657,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                                 imageUrl,
                                 width: double.infinity,
                                 height: double.infinity,
+                                cacheWidth: 600,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Center(
                                   child: Icon(fallbackIcon, size: 40, color: tagTextColor),

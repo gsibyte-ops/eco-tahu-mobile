@@ -22,6 +22,7 @@ class FullscreenImageViewer {
                 maxScale: 4.0,
                 child: Image.network(
                   imageUrl,
+                  cacheWidth: 1200,
                   fit: BoxFit.contain,
                   errorBuilder: (_, __, ___) => Container(
                     padding: const EdgeInsets.all(24),
@@ -299,6 +300,7 @@ class YoutubeCardPreview extends StatelessWidget {
               if (thumbUrl != null)
                 Image.network(
                   thumbUrl,
+                  cacheWidth: 600,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const Center(
                     child: Icon(Icons.play_circle_fill_rounded, color: Colors.redAccent, size: 54),

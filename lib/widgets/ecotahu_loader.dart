@@ -670,15 +670,20 @@ class EcoTahuSplashLoader extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                statusText,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                  color: subtextColor,
+              Expanded(
+                child: Text(
+                  statusText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                    color: subtextColor,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 '$percentInt%',
                 style: TextStyle(

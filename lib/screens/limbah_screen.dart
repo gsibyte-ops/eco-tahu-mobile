@@ -310,6 +310,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
                                 limbah.imageUrl,
                                 width: double.infinity,
                                 height: double.infinity,
+                                cacheWidth: 600,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Center(
                                   child: Icon(Icons.recycling_rounded, size: 40, color: context.brandAmber),

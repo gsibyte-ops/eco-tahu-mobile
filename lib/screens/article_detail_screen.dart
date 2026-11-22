@@ -286,6 +286,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                         children: [
                           Image.network(
                             heroImage,
+                            cacheWidth: 1080,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data'; // WAJIB UNTUK UPLOAD FILE
 import 'package:http/http.dart' as http;
@@ -12,10 +13,32 @@ import '../config/app_config.dart';
 class ApiService {
   final String baseUrl = AppConfig.apiBaseUrl;
 
+  static const Duration _timeout = Duration(seconds: 20);
+  static const Duration _uploadTimeout = Duration(seconds: 45);
+
+  Future<http.Response> _get(Uri url, {Map<String, String>? headers}) =>
+      http.get(url, headers: headers).timeout(_timeout);
+
+  Future<http.Response> _post(Uri url, {Map<String, String>? headers, Object? body}) =>
+      http.post(url, headers: headers, body: body).timeout(_timeout);
+
+  Future<http.Response> _put(Uri url, {Map<String, String>? headers, Object? body}) =>
+      http.put(url, headers: headers, body: body).timeout(_timeout);
+
+  Future<http.Response> _delete(Uri url, {Map<String, String>? headers, Object? body}) =>
+      http.delete(url, headers: headers, body: body).timeout(_timeout);
+
+  String _formatError(Object e) {
+    if (e is TimeoutException) {
+      return 'Koneksi ke server melebihi batas waktu. Periksa jaringan Anda lalu coba lagi.';
+    }
+    return 'Terjadi kesalahan koneksi: $e';
+  }
+
   // === FUNGSI LOGIN ===
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/login'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
@@ -32,7 +55,7 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Email atau password salah'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -45,7 +68,7 @@ class ApiService {
     required String passwordConfirmation,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/register'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -68,7 +91,7 @@ class ApiService {
         return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -80,7 +103,7 @@ class ApiService {
     String? avatar,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/auth/google'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -105,14 +128,14 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
   // === FUNGSI LUPA PASSWORD ===
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/forgot-password'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
@@ -129,7 +152,7 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal mengirim link reset password.'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -141,7 +164,7 @@ class ApiService {
     required String passwordConfirmation,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/reset-password'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -163,7 +186,7 @@ class ApiService {
         return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -172,7 +195,7 @@ class ApiService {
     try {
       Map<String, String> headers = {'Accept': 'application/json'};
       if (token != null && token.isNotEmpty) headers['Authorization'] = 'Bearer $token';
-      final response = await http.get(Uri.parse('$baseUrl/produk-tahu'), headers: headers);
+      final response = await _get(Uri.parse('$baseUrl/produk-tahu'), headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List results = data['data'];
@@ -181,14 +204,14 @@ class ApiService {
         throw Exception('Gagal memuat produk. Status: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      throw Exception(_formatError(e));
     }
   }
 
   // === FUNGSI GET PRODUK LIMBAH ===
   Future<List<Limbah>> getLimbah() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/limbah'),
         headers: {'Accept': 'application/json'},
       );
@@ -201,7 +224,7 @@ class ApiService {
         throw Exception('Gagal memuat limbah. Status: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      throw Exception(_formatError(e));
     }
   }
 
@@ -212,7 +235,7 @@ class ApiService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/edukasi'),
         headers: headers,
       );
@@ -225,14 +248,14 @@ class ApiService {
         throw Exception('Gagal memuat artikel. Status: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      throw Exception(_formatError(e));
     }
   }
 
   // === FUNGSI LIKE ARTIKEL EDUKASI ===
   Future<Map<String, dynamic>> toggleArticleLike(String token, int articleId) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/edukasi/$articleId/like'),
         headers: {
           'Accept': 'application/json',
@@ -253,7 +276,7 @@ class ApiService {
         'message': data['message'] ?? 'Gagal memperbarui suka',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -264,7 +287,7 @@ class ApiService {
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/resep'),
         headers: headers,
       );
@@ -277,14 +300,14 @@ class ApiService {
         throw Exception('Gagal memuat resep. Status: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error: $e');
+      throw Exception(_formatError(e));
     }
   }
 
   // === FUNGSI LIKE RESEP OLAHAN TAHU ===
   Future<Map<String, dynamic>> toggleRecipeLike(String token, int recipeId) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/resep/$recipeId/like'),
         headers: {
           'Accept': 'application/json',
@@ -305,14 +328,14 @@ class ApiService {
         'message': data['message'] ?? 'Gagal memperbarui suka',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
   // === FUNGSI GET PROFIL USER ===
   Future<Map<String, dynamic>?> getUserProfile(String token) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/user'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -344,7 +367,7 @@ class ApiService {
         payload['avatar_base64'] = avatarBase64;
       }
 
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/user/profile'),
         headers: {
           'Accept': 'application/json',
@@ -365,7 +388,7 @@ class ApiService {
         return {'success': false, 'message': msg};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -377,7 +400,7 @@ class ApiService {
     required String confirmPassword,
   }) async {
     try {
-      final response = await http.put(
+      final response = await _put(
         Uri.parse('$baseUrl/user/password'),
         headers: {
           'Accept': 'application/json',
@@ -402,7 +425,7 @@ class ApiService {
         return {'success': false, 'message': msg};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -412,7 +435,7 @@ class ApiService {
     required String password,
   }) async {
     try {
-      final response = await http.delete(
+      final response = await _delete(
         Uri.parse('$baseUrl/user'),
         headers: {
           'Accept': 'application/json',
@@ -430,14 +453,14 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal menghapus akun.'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Terjadi kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
   // === FUNGSI LOGOUT ===
   Future<bool> logout(String token) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/logout'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -461,7 +484,7 @@ class ApiService {
         queryParams['no_telepon'] = noTelepon.trim();
       }
       final uri = Uri.parse('$baseUrl/promo/first-order').replace(queryParameters: queryParams);
-      final response = await http.get(
+      final response = await _get(
         uri,
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -480,7 +503,7 @@ class ApiService {
   // === FUNGSI GET RIWAYAT PESANAN ===
   Future<List<dynamic>?> getOrders(String token) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/pesanan'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -513,7 +536,7 @@ class ApiService {
     String? kecamatan,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/pesanan'),
         headers: {
           'Accept': 'application/json', 'Content-Type': 'application/json',
@@ -543,7 +566,7 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal membuat pesanan'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -564,7 +587,7 @@ class ApiService {
       if (nomorRekening != null && nomorRekening.isNotEmpty) body['nomor_rekening'] = nomorRekening;
       if (atasNama != null && atasNama.isNotEmpty) body['atas_nama'] = atasNama;
 
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/pesanan/$pesananId/cancel'),
         headers: {
           'Accept': 'application/json',
@@ -580,7 +603,7 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal membatalkan pesanan'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
@@ -608,7 +631,7 @@ class ApiService {
         filename: fileName,
       ));
 
-      var streamedResponse = await request.send();
+      var streamedResponse = await request.send().timeout(_uploadTimeout);
       var response = await http.Response.fromStream(streamedResponse);
       final data = jsonDecode(response.body);
 
@@ -618,14 +641,14 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal upload bukti'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
   // === FUNGSI TOKO & ONGKIR ===
   Future<Map<String, dynamic>?> getTokoInfo() async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/toko'),
         headers: {'Accept': 'application/json'},
       );
@@ -641,7 +664,7 @@ class ApiService {
 
   Future<Map<String, dynamic>?> calculateOngkir(double lat, double lng) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/toko/hitung-ongkir'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({'lat': lat, 'lng': lng}),
@@ -658,7 +681,7 @@ class ApiService {
   // === FUNGSI NOTIFIKASI ===
   Future<Map<String, dynamic>> getNotifications(String token) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/notifications'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -680,7 +703,7 @@ class ApiService {
 
   Future<bool> markNotificationAsRead(String token, String id) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/notifications/$id/read'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -692,7 +715,7 @@ class ApiService {
 
   Future<bool> markAllNotificationsAsRead(String token) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/notifications/read-all'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -705,7 +728,7 @@ class ApiService {
   // === FUNGSI ULASAN / REVIEWS ===
   Future<List<ReviewModel>> getReviews(String itemType, int itemId) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/reviews?item_type=$itemType&item_id=$itemId'),
         headers: {'Accept': 'application/json'},
       );
@@ -750,7 +773,7 @@ class ApiService {
           filename: mediaName,
         ));
 
-        final streamedResponse = await request.send();
+        final streamedResponse = await request.send().timeout(_uploadTimeout);
         final response = await http.Response.fromStream(streamedResponse);
         final data = jsonDecode(response.body);
         if (response.statusCode == 201 || response.statusCode == 200) {
@@ -767,7 +790,7 @@ class ApiService {
         }
       }
 
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/reviews'),
         headers: {
           'Accept': 'application/json',
@@ -789,14 +812,14 @@ class ApiService {
         return {'success': false, 'message': data['message'] ?? 'Gagal mengirim ulasan'};
       }
     } catch (e) {
-      return {'success': false, 'message': 'Kesalahan koneksi: $e'};
+      return {'success': false, 'message': _formatError(e)};
     }
   }
 
   // === FUNGSI TRACKING KURIR ===
   Future<Map<String, dynamic>?> getOrderTracking(String token, dynamic pesananId) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/pesanan/$pesananId/tracking'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -812,7 +835,7 @@ class ApiService {
   // === ADMIN DASHBOARD OVERVIEW (READ-ONLY) ===
   Future<Map<String, dynamic>> getAdminOverview(String token) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/admin/overview'),
         headers: {
           'Accept': 'application/json',
@@ -834,7 +857,7 @@ class ApiService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'Terjadi kesalahan koneksi: $e',
+        'message': _formatError(e),
       };
     }
   }
@@ -842,7 +865,7 @@ class ApiService {
   // === KERANJANG PERSISTENT API ===
   Future<List<Map<String, dynamic>>?> getCart(String token) async {
     try {
-      final response = await http.get(
+      final response = await _get(
         Uri.parse('$baseUrl/cart'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
@@ -867,7 +890,7 @@ class ApiService {
     int qty = 1,
   }) async {
     try {
-      final response = await http.post(
+      final response = await _post(
         Uri.parse('$baseUrl/cart'),
         headers: {
           'Accept': 'application/json',
@@ -893,7 +916,7 @@ class ApiService {
     required int qty,
   }) async {
     try {
-      final response = await http.put(
+      final response = await _put(
         Uri.parse('$baseUrl/cart'),
         headers: {
           'Accept': 'application/json',
@@ -918,7 +941,7 @@ class ApiService {
     required int itemId,
   }) async {
     try {
-      final response = await http.delete(
+      final response = await _delete(
         Uri.parse('$baseUrl/cart/item'),
         headers: {
           'Accept': 'application/json',
@@ -938,7 +961,7 @@ class ApiService {
 
   Future<bool> clearCartApi(String token) async {
     try {
-      final response = await http.delete(
+      final response = await _delete(
         Uri.parse('$baseUrl/cart'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );

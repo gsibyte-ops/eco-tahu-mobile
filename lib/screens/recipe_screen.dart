@@ -411,6 +411,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                             recipe.displayImageUrl,
                             width: double.infinity,
                             height: 185,
+                            cacheWidth: 600,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;

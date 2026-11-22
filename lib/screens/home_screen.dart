@@ -1045,6 +1045,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (imgUrl.isNotEmpty)
                         Image.network(
                           imgUrl,
+                          cacheWidth: 600,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) => _buildEdukasiCoverFallback(
                             context,
@@ -1490,6 +1491,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 imageUrl,
                                 width: double.infinity,
                                 height: double.infinity,
+                                cacheWidth: 600,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Center(
                                   child: Icon(fallbackIcon, size: 42, color: tagTextColor),

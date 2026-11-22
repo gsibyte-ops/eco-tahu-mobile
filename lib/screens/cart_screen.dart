@@ -402,6 +402,7 @@ class _CartScreenState extends State<CartScreen> {
                                       item.product.imageUrl,
                                       width: 76,
                                       height: 76,
+                                      cacheWidth: 400,
                                       fit: BoxFit.cover,
                                       errorBuilder: (context, error, stackTrace) => Container(
                                         width: 76,

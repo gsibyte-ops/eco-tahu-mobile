@@ -987,6 +987,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             cartItem.product.imageUrl,
                                             width: 42,
                                             height: 42,
+                                            cacheWidth: 400,
                                             fit: BoxFit.cover,
                                             errorBuilder: (_, __, ___) => Center(
                                               child: Icon(

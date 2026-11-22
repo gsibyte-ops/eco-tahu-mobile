@@ -146,6 +146,7 @@ class _LimbahDetailScreenState extends State<LimbahDetailScreen> {
                             limbah.imageUrl,
                             width: double.infinity,
                             height: 330,
+                            cacheWidth: 1080,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Container(
                               color: context.limbahTagBg,
@@ -427,6 +428,7 @@ class _LimbahDetailScreenState extends State<LimbahDetailScreen> {
                                                               rev.userAvatar!,
                                                               width: 28,
                                                               height: 28,
+                                                              cacheWidth: 400,
                                                               fit: BoxFit.cover,
                                                               errorBuilder: (_, __, ___) => Text(
                                                                 rev.userName.isNotEmpty ? rev.userName[0].toUpperCase() : 'U',
@@ -499,6 +501,7 @@ class _LimbahDetailScreenState extends State<LimbahDetailScreen> {
                                                         rev.mediaUrl!,
                                                         height: 140,
                                                         width: 140,
+                                                        cacheWidth: 600,
                                                         fit: BoxFit.cover,
                                                         errorBuilder: (_, __, ___) => Container(
                                                           height: 140,

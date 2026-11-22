@@ -330,6 +330,7 @@ class _EducationScreenState extends State<EducationScreen> {
                             article.displayImageUrl,
                             width: double.infinity,
                             height: 185,
+                            cacheWidth: 600,
                             fit: BoxFit.cover,
                             loadingBuilder: (context, child, loadingProgress) {
                               if (loadingProgress == null) return child;
