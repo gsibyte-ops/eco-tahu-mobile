@@ -23,6 +23,9 @@ import 'faq_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_screen.dart';
 import '../services/secure_storage_service.dart';
+import '../services/local_cache_service.dart';
+import '../services/local_notification_service.dart';
+import '../widgets/shimmer_skeletons.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -100,9 +103,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // 1. Tembak API Logout Laravel
       await _apiService.logout(_token!);
       
-      // 2. Hapus token & status role dari HP (keranjang tetap tersimpan)
+      // 2. Hapus token, cache privat, riwayat push notif, & status role dari HP
       final prefs = await SharedPreferences.getInstance();
       await SecureStorageService.deleteToken();
+      await LocalCacheService.clearUserPrivateCache();
+      await LocalNotificationService.instance.clearHistory();
+      LocalNotificationService.instance.stopPolling();
       await prefs.remove('is_admin');
       if (mounted) {
         await Provider.of<AuthProvider>(context, listen: false).setAdminStatus(false);
@@ -129,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: context.scaffoldBg,
       body: SafeArea(
         child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: context.brandGreen))
+            ? const ProfileShimmerSkeleton()
             : _token == null || _userData == null
                 ? _buildNotLoggedIn(context) // Tampilan belum login
                 : _buildLoggedIn(context), // Tampilan sudah login

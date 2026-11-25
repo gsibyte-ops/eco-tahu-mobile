@@ -4,7 +4,8 @@ import '../models/order.dart';
 import '../theme/app_theme.dart';
 import 'order_detail_screen.dart';
 import '../services/api_service.dart';
-import '../widgets/ecotahu_loader.dart';
+import '../widgets/offline_banner.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../services/secure_storage_service.dart';
 
 class MyOrdersScreen extends StatefulWidget {
@@ -309,33 +310,37 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
             ),
           ),
 
-          _isLoading
-              ? const EcoTahuLoadingIndicator()
-              : _errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.info_outline, color: Colors.grey, size: 48),
-                            const SizedBox(height: 12),
-                            Text(
-                              _errorMessage!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+          Column(
+            children: [
+              const OfflineStatusBanner(),
+              Expanded(
+                child: _isLoading
+                    ? const OrderListShimmerSkeleton()
+                    : _errorMessage != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.info_outline, color: Colors.grey, size: 48),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    _errorMessage!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _fetchOrders,
+                                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669)),
+                                    child: const Text('Muat Ulang', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _fetchOrders,
-                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669)),
-                              child: const Text('Muat Ulang', style: TextStyle(color: Colors.white)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : RefreshIndicator(
+                          )
+                        : RefreshIndicator(
                       color: const Color(0xFF059669),
                       onRefresh: _fetchOrders,
                       child: Column(
@@ -455,6 +460,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                         ],
                       ),
                     ),
+              ),
+            ],
+          ),
         ],
       ),
     );

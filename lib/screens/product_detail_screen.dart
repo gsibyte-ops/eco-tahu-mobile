@@ -5,9 +5,11 @@ import '../models/product.dart';
 import '../models/review_model.dart';
 import '../services/api_service.dart';
 import '../providers/cart_provider.dart';
+import '../providers/connectivity_provider.dart';
 import 'cart_screen.dart';
 import '../widgets/auth_guard.dart';
 import '../widgets/media_preview_widgets.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -375,12 +377,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(height: 12),
 
                       _isLoadingReviews
-                          ? const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(16.0),
-                                child: CircularProgressIndicator(color: Color(0xFF059669)),
-                              ),
-                            )
+                          ? const ReviewsShimmerSkeleton()
                           : _reviews.isEmpty
                               ? Container(
                                   width: double.infinity,
@@ -392,7 +389,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      'Belum ada ulasan untuk produk ini.',
+                                      context.watch<ConnectivityProvider>().isOffline
+                                          ? 'Ulasan & komentar tidak dapat dimuat saat mode offline.'
+                                          : 'Belum ada ulasan untuk produk ini.',
+                                      textAlign: TextAlign.center,
                                       style: TextStyle(color: context.textMuted, fontSize: 13),
                                     ),
                                   ),

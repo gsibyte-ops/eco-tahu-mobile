@@ -15,7 +15,7 @@ import 'cart_screen.dart';
 import '../services/api_service.dart';
 import 'notification_screen.dart';
 import '../widgets/auth_guard.dart';
-import '../widgets/ecotahu_loader.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart';
 import '../services/secure_storage_service.dart';
@@ -169,7 +169,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           SafeArea(
             child: _isLoading
-                ? const EcoTahuLoadingIndicator()
+                ? const HomeShimmerSkeleton()
                 : _errorMessage != null
                     ? _buildErrorState()
                     : RefreshIndicator(
@@ -1042,14 +1042,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     fit: StackFit.expand,
                     children: [
                       if (imgUrl.isNotEmpty)
-                        Image.network(
-                          imgUrl,
-                          cacheWidth: 600,
+                        EcoCachedImage(
+                          imageUrl: imgUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildEdukasiCoverFallback(
-                            context,
-                            isVideo || isYoutube,
-                          ),
+                          fallbackIcon: (isVideo || isYoutube)
+                              ? Icons.play_circle_filled_rounded
+                              : Icons.auto_stories_rounded,
                         )
                       else
                         _buildEdukasiCoverFallback(context, isVideo || isYoutube),
@@ -1483,22 +1481,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: context.surfaceElevated,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
                       ),
-                      child: ClipRRect(
+                      child: EcoCachedImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                        child: imageUrl.isNotEmpty
-                            ? Image.network(
-                                imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                cacheWidth: 600,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Center(
-                                  child: Icon(fallbackIcon, size: 42, color: tagTextColor),
-                                ),
-                              )
-                            : Center(
-                                child: Icon(fallbackIcon, size: 42, color: tagTextColor),
-                              ),
+                        fallbackIcon: fallbackIcon,
+                        fallbackColor: tagTextColor,
+                        fallbackBgColor: context.surfaceElevated,
                       ),
                     ),
 

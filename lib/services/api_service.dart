@@ -9,6 +9,7 @@ import '../models/limbah.dart';
 import '../models/notification_model.dart';
 import '../models/review_model.dart';
 import '../config/app_config.dart';
+import 'local_cache_service.dart';
 
 class ApiService {
   final String baseUrl = AppConfig.apiBaseUrl;
@@ -188,7 +189,7 @@ class ApiService {
     }
   }
 
-  // === FUNGSI GET PRODUK TAHU ===
+  // === FUNGSI GET PRODUK TAHU (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<List<Product>> getProducts([String? token]) async {
     try {
       Map<String, String> headers = {'Accept': 'application/json'};
@@ -196,17 +197,25 @@ class ApiService {
       final response = await _get(Uri.parse('$baseUrl/produk-tahu'), headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List results = data['data'];
+        List results = data['data'] ?? [];
+        await LocalCacheService.saveJson(LocalCacheService.keyProducts, results);
         return results.map((json) => Product.fromJson(json)).toList();
       } else {
         throw Exception('Gagal memuat produk. Status: ${response.statusCode}');
       }
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyProducts);
+      if (cached is List) {
+        return cached
+            .whereType<Map>()
+            .map((json) => Product.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
       throw Exception(_formatError(e));
     }
   }
 
-  // === FUNGSI GET PRODUK LIMBAH ===
+  // === FUNGSI GET PRODUK LIMBAH (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<List<Limbah>> getLimbah() async {
     try {
       final response = await _get(
@@ -216,17 +225,25 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List results = data['data'];
+        List results = data['data'] ?? [];
+        await LocalCacheService.saveJson(LocalCacheService.keyLimbah, results);
         return results.map((json) => Limbah.fromJson(json)).toList();
       } else {
         throw Exception('Gagal memuat limbah. Status: ${response.statusCode}');
       }
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyLimbah);
+      if (cached is List) {
+        return cached
+            .whereType<Map>()
+            .map((json) => Limbah.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
       throw Exception(_formatError(e));
     }
   }
 
-  // === FUNGSI GET ARTIKEL EDUKASI ===
+  // === FUNGSI GET ARTIKEL EDUKASI (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<List<Article>> getArticles([String? token]) async {
     try {
       final headers = <String, String>{'Accept': 'application/json'};
@@ -240,12 +257,20 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        List results = data['data'];
+        List results = data['data'] ?? [];
+        await LocalCacheService.saveJson(LocalCacheService.keyArticles, results);
         return results.map((json) => Article.fromJson(json)).toList();
       } else {
         throw Exception('Gagal memuat artikel. Status: ${response.statusCode}');
       }
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyArticles);
+      if (cached is List) {
+        return cached
+            .whereType<Map>()
+            .map((json) => Article.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
       throw Exception(_formatError(e));
     }
   }
@@ -278,7 +303,7 @@ class ApiService {
     }
   }
 
-  // === FUNGSI GET RESEP OLAHAN TAHU ===
+  // === FUNGSI GET RESEP OLAHAN TAHU (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<List<Recipe>> getRecipes([String? token]) async {
     try {
       final headers = <String, String>{'Accept': 'application/json'};
@@ -293,11 +318,19 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List results = data['data'] ?? [];
+        await LocalCacheService.saveJson(LocalCacheService.keyRecipes, results);
         return results.map((json) => Recipe.fromJson(json)).toList();
       } else {
         throw Exception('Gagal memuat resep. Status: ${response.statusCode}');
       }
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyRecipes);
+      if (cached is List) {
+        return cached
+            .whereType<Map>()
+            .map((json) => Recipe.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
       throw Exception(_formatError(e));
     }
   }
@@ -330,16 +363,27 @@ class ApiService {
     }
   }
 
-  // === FUNGSI GET PROFIL USER ===
+  // === FUNGSI GET PROFIL USER (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<Map<String, dynamic>?> getUserProfile(String token) async {
     try {
       final response = await _get(
         Uri.parse('$baseUrl/user'),
         headers: {'Accept': 'application/json', 'Authorization': 'Bearer $token'},
       );
-      if (response.statusCode == 200) return jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          await LocalCacheService.saveJson(LocalCacheService.keyUserProfile, decoded);
+          return decoded;
+        }
+      }
+      if (response.statusCode == 401) return null;
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyUserProfile);
+      if (cached is Map) return Map<String, dynamic>.from(cached);
       return null;
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyUserProfile);
+      if (cached is Map) return Map<String, dynamic>.from(cached);
       return null;
     }
   }
@@ -498,7 +542,7 @@ class ApiService {
     }
   }
 
-  // === FUNGSI GET RIWAYAT PESANAN ===
+  // === FUNGSI GET RIWAYAT PESANAN (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<List<dynamic>?> getOrders(String token) async {
     try {
       final response = await _get(
@@ -507,10 +551,19 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['data'];
+        final list = data['data'];
+        if (list is List) {
+          await LocalCacheService.saveJson(LocalCacheService.keyOrders, list);
+          return list;
+        }
       }
+      if (response.statusCode == 401) return null;
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyOrders);
+      if (cached is List) return cached;
       return null;
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyOrders);
+      if (cached is List) return cached;
       return null;
     }
   }
@@ -643,7 +696,7 @@ class ApiService {
     }
   }
 
-  // === FUNGSI TOKO & ONGKIR ===
+  // === FUNGSI TOKO & ONGKIR (OFFLINE-FIRST CACHE FALLBACK) ===
   Future<Map<String, dynamic>?> getTokoInfo() async {
     try {
       final response = await _get(
@@ -652,10 +705,17 @@ class ApiService {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        return data['data'];
+        if (data['data'] is Map) {
+          await LocalCacheService.saveJson(LocalCacheService.keyToko, data['data']);
+          return Map<String, dynamic>.from(data['data']);
+        }
       }
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyToko);
+      if (cached is Map) return Map<String, dynamic>.from(cached);
       return null;
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyToko);
+      if (cached is Map) return Map<String, dynamic>.from(cached);
       return null;
     }
   }
@@ -676,8 +736,8 @@ class ApiService {
     }
   }
 
-  // === FUNGSI NOTIFIKASI ===
-  Future<Map<String, dynamic>> getNotifications(String token) async {
+  // === FUNGSI NOTIFIKASI (OFFLINE-FIRST CACHE FALLBACK) ===
+  Future<Map<String, dynamic>> getNotifications(String token, {bool useCacheOnError = true}) async {
     try {
       final response = await _get(
         Uri.parse('$baseUrl/notifications'),
@@ -686,6 +746,10 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         List raw = data['data'] ?? [];
+        await LocalCacheService.saveJson(LocalCacheService.keyNotifications, {
+          'unread_count': data['unread_count'] ?? 0,
+          'data': raw,
+        });
         List<NotificationModel> list = raw.map((json) => NotificationModel.fromJson(json)).toList();
         return {
           'success': true,
@@ -693,8 +757,38 @@ class ApiService {
           'notifications': list,
         };
       }
+      if (useCacheOnError && response.statusCode != 401) {
+        final cached = await LocalCacheService.readJson(LocalCacheService.keyNotifications);
+        if (cached is Map && cached['data'] is List) {
+          final list = (cached['data'] as List)
+              .whereType<Map>()
+              .map((json) => NotificationModel.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+          return {
+            'success': true,
+            'from_cache': true,
+            'unread_count': cached['unread_count'] ?? 0,
+            'notifications': list,
+          };
+        }
+      }
       return {'success': false, 'unread_count': 0, 'notifications': <NotificationModel>[]};
     } catch (e) {
+      if (useCacheOnError) {
+        final cached = await LocalCacheService.readJson(LocalCacheService.keyNotifications);
+        if (cached is Map && cached['data'] is List) {
+          final list = (cached['data'] as List)
+              .whereType<Map>()
+              .map((json) => NotificationModel.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+          return {
+            'success': true,
+            'from_cache': true,
+            'unread_count': cached['unread_count'] ?? 0,
+            'notifications': list,
+          };
+        }
+      }
       return {'success': false, 'unread_count': 0, 'notifications': <NotificationModel>[]};
     }
   }
@@ -830,7 +924,7 @@ class ApiService {
     }
   }
 
-  // === ADMIN DASHBOARD OVERVIEW (READ-ONLY) ===
+  // === ADMIN DASHBOARD OVERVIEW (READ-ONLY + OFFLINE CACHE) ===
   Future<Map<String, dynamic>> getAdminOverview(String token) async {
     try {
       final response = await _get(
@@ -842,10 +936,23 @@ class ApiService {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 && data['success'] == true) {
+        if (data['data'] is Map) {
+          await LocalCacheService.saveJson(LocalCacheService.keyAdminOverview, data['data']);
+        }
         return {
           'success': true,
           'data': data['data'],
         };
+      }
+      if (response.statusCode != 401 && response.statusCode != 403) {
+        final cached = await LocalCacheService.readJson(LocalCacheService.keyAdminOverview);
+        if (cached is Map) {
+          return {
+            'success': true,
+            'from_cache': true,
+            'data': Map<String, dynamic>.from(cached),
+          };
+        }
       }
       return {
         'success': false,
@@ -853,6 +960,14 @@ class ApiService {
         'message': data['message'] ?? 'Gagal memuat ringkasan admin.',
       };
     } catch (e) {
+      final cached = await LocalCacheService.readJson(LocalCacheService.keyAdminOverview);
+      if (cached is Map) {
+        return {
+          'success': true,
+          'from_cache': true,
+          'data': Map<String, dynamic>.from(cached),
+        };
+      }
       return {
         'success': false,
         'message': _formatError(e),

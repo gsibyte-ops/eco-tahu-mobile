@@ -7,16 +7,23 @@ import 'screens/splash_screen.dart';
 import 'screens/reset_password_screen.dart';
 import 'providers/cart_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/connectivity_provider.dart';
 import 'providers/navigation_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/store_provider.dart';
 import 'providers/theme_provider.dart';
+import 'services/local_notification_service.dart';
+
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (_) {}
+  await LocalNotificationService.instance.init(navigatorKey: appNavigatorKey);
   runApp(const MyApp());
 }
 
@@ -28,6 +35,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (context) => NavigationProvider()),
         ChangeNotifierProvider(create: (context) => AuthProvider()),
         ChangeNotifierProvider(create: (context) => CartProvider()..loadCart()),
@@ -37,6 +45,7 @@ class MyApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
           return MaterialApp(
+            navigatorKey: appNavigatorKey,
             title: 'EcoTahu',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,

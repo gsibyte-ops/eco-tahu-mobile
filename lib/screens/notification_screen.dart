@@ -4,6 +4,8 @@ import '../models/notification_model.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../services/secure_storage_service.dart';
+import '../widgets/offline_banner.dart';
+import '../widgets/shimmer_skeletons.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -168,58 +170,65 @@ class _NotificationScreenState extends State<NotificationScreen> {
             ),
           ),
 
-          _isLoading
-              ? Center(child: CircularProgressIndicator(color: context.brandGreen))
-              : _notifications.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 76,
-                              height: 76,
-                              decoration: BoxDecoration(
-                                color: context.tahuTagBg,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: context.tahuTagBorder, width: 1.2),
+          Column(
+            children: [
+              const OfflineStatusBanner(),
+              Expanded(
+                child: _isLoading
+                    ? const NotificationListShimmerSkeleton()
+                    : _notifications.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    width: 76,
+                                    height: 76,
+                                    decoration: BoxDecoration(
+                                      color: context.tahuTagBg,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: context.tahuTagBorder, width: 1.2),
+                                    ),
+                                    child: Icon(
+                                      Icons.notifications_none_rounded,
+                                      size: 40,
+                                      color: context.brandGreen,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Belum Ada Notifikasi',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textPrimary),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Pemberitahuan terkait status pesanan akan masuk di sini.',
+                                    style: TextStyle(fontSize: 13, color: context.textSecondary),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
-                              child: Icon(
-                                Icons.notifications_none_rounded,
-                                size: 40,
-                                color: context.brandGreen,
-                              ),
                             ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Belum Ada Notifikasi',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.textPrimary),
+                          )
+                        : RefreshIndicator(
+                            color: context.brandGreen,
+                            onRefresh: _loadNotifications,
+                            child: ListView.separated(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                              itemCount: _notifications.length,
+                              separatorBuilder: (context, index) => const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final notif = _notifications[index];
+                                return _buildNotificationCard(notif);
+                              },
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Pemberitahuan terkait status pesanan akan masuk di sini.',
-                              style: TextStyle(fontSize: 13, color: context.textSecondary),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      color: context.brandGreen,
-                      onRefresh: _loadNotifications,
-                      child: ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                        itemCount: _notifications.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final notif = _notifications[index];
-                          return _buildNotificationCard(notif);
-                        },
-                      ),
-                    ),
+                          ),
+              ),
+            ],
+          ),
         ],
       ),
     );

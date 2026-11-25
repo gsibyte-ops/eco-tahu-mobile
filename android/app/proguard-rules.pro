@@ -26,3 +26,7 @@
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
 -keep class com.google.crypto.tink.** { *; }
 -dontwarn com.google.crypto.tink.**
+
+# Flutter Local Notifications (keep notification classes under R8)
+-keep class com.dexterous.** { *; }
+-dontwarn com.dexterous.**

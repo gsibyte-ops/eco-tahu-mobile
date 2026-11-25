@@ -4,6 +4,8 @@ import '../config/app_config.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/media_preview_widgets.dart';
+import '../widgets/offline_banner.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../services/secure_storage_service.dart';
 
 class AdminOverviewScreen extends StatefulWidget {
@@ -178,11 +180,15 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: context.brandGreen))
-          : _errorMessage != null
-              ? _buildErrorView()
-              : RefreshIndicator(
+      body: Column(
+        children: [
+          const OfflineStatusBanner(),
+          Expanded(
+            child: _isLoading
+                ? const AdminOverviewShimmerSkeleton()
+                : _errorMessage != null
+                    ? _buildErrorView()
+                    : RefreshIndicator(
                   color: context.brandGreen,
                   onRefresh: _loadOverview,
                   child: SingleChildScrollView(
@@ -377,6 +383,9 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
                     ),
                   ),
                 ),
+          ),
+        ],
+      ),
     );
   }
 

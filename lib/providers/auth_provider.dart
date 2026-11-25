@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:convert';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
+import '../services/local_notification_service.dart';
 import '../services/secure_storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -405,8 +407,11 @@ class AuthProvider extends ChangeNotifier {
       }
     }
 
-    // Hapus token terenkripsi dari Keystore
+    // Hapus token terenkripsi dari Keystore & cache privat lokal
     await SecureStorageService.deleteToken();
+    await LocalCacheService.clearUserPrivateCache();
+    await LocalNotificationService.instance.clearHistory();
+    LocalNotificationService.instance.stopPolling();
 
     // Reset state di memory
     _isLoggedIn = false;

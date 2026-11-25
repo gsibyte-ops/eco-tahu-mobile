@@ -7,11 +7,14 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../models/order.dart';
 import '../providers/cart_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/order_provider.dart';
 import '../providers/store_provider.dart';
 import '../services/api_service.dart';
+import '../services/local_notification_service.dart';
 import '../services/location_service.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/offline_banner.dart';
 import 'transfer_payment_screen.dart';
 import 'order_success_screen.dart';
 import '../theme/app_theme.dart';
@@ -318,6 +321,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _handleBuatPesanan(int subtotal, int discountAmount) async {
+    if (context.read<ConnectivityProvider>().isOffline) {
+      showOfflineActionAlert(
+        context,
+        actionLabel: 'checkout pesanan (keranjang tetap aman di HP Anda)',
+      );
+      return;
+    }
     final canProceed = await AuthGuard.requireAuth(
       context,
       actionMessage: 'membuat pesanan checkout',
@@ -416,6 +426,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isProcessing = false);
 
     if (result['success'] == true) {
+      LocalNotificationService.instance.pollNow();
       final Map<String, dynamic> serverData = result['data'] is Map
           ? Map<String, dynamic>.from(result['data'])
           : <String, dynamic>{};

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/article.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/ecotahu_loader.dart';
+import '../widgets/shimmer_skeletons.dart';
 import 'article_detail_screen.dart';
 import '../services/secure_storage_service.dart';
 
@@ -201,10 +201,7 @@ class _EducationScreenState extends State<EducationScreen> {
 
                     // Article List / States
                     if (_isLoading)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 40),
-                        child: EcoTahuLoadingIndicator(),
-                      )
+                      const ContentCardListShimmerSkeleton()
                     else if (_errorMessage != null)
                       Center(
                         child: Padding(
@@ -323,48 +320,17 @@ class _EducationScreenState extends State<EducationScreen> {
                     // Article Image with Gradient Overlay & Category Pill
                     Stack(
                       children: [
-                        ClipRRect(
+                        EcoCachedImage(
+                          imageUrl: article.displayImageUrl,
+                          width: double.infinity,
+                          height: 185,
+                          fit: BoxFit.cover,
                           borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-                          child: Image.network(
-                            article.displayImageUrl,
-                            width: double.infinity,
-                            height: 185,
-                            cacheWidth: 600,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                width: double.infinity,
-                                height: 185,
-                                color: context.isDark ? AppTheme.darkSurfaceElevated : const Color(0xFFE8F5E9),
-                                child: const Center(
-                                  child: CircularProgressIndicator(color: Color(0xFF059669)),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: double.infinity,
-                              height: 185,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: context.isDark 
-                                      ? [AppTheme.darkSurfaceElevated, AppTheme.darkSurface]
-                                      : [const Color(0xFFE8F5E9), const Color(0xFFD1FAE5)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                              ),
-                              child: Center(
-                                child: Icon(
-                                  article.mediaType == 'video'
-                                      ? Icons.play_circle_filled_rounded
-                                      : Icons.article_rounded,
-                                  size: 54,
-                                  color: const Color(0xFF059669),
-                                ),
-                              ),
-                            ),
-                          ),
+                          fallbackIcon: article.mediaType == 'video'
+                              ? Icons.play_circle_filled_rounded
+                              : Icons.article_rounded,
+                          fallbackColor: const Color(0xFF059669),
+                          fallbackBgColor: context.isDark ? AppTheme.darkSurfaceElevated : const Color(0xFFE8F5E9),
                         ),
                         // Dark soft gradient bottom of image
                         Positioned.fill(

@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/store_provider.dart';
+import '../services/local_notification_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/offline_banner.dart';
 import 'home_screen.dart';
 import 'product_listing_screen.dart';
 import 'recipe_screen.dart';
@@ -19,7 +23,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   final List<Widget> _pages = const [
     HomeScreen(),
     ProductListingScreen(),
@@ -28,9 +32,13 @@ class _MainScreenState extends State<MainScreen> {
     ProfileScreen(),
   ];
 
+  ConnectivityProvider? _connectivityProvider;
+  Future<void> Function()? _reconnectCallback;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final navProvider = Provider.of<NavigationProvider>(context, listen: false);
@@ -40,6 +48,25 @@ class _MainScreenState extends State<MainScreen> {
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+      _connectivityProvider = Provider.of<ConnectivityProvider>(context, listen: false);
+
+      // Daftarkan auto-sync ketika koneksi kembali online
+      _reconnectCallback = () async {
+        await authProvider.syncRoleFromServer();
+        cartProvider.setAdminMode(authProvider.isAdmin);
+        if (!authProvider.isAdmin) {
+          await cartProvider.syncWithServer();
+        }
+        await storeProvider.loadStoreInfo(force: true);
+        await LocalNotificationService.instance.pollNow();
+      };
+      _connectivityProvider?.addReconnectListener(_reconnectCallback!);
+
+      // Minta izin push notification Android 13+ dan mulai polling notifikasi server
+      await LocalNotificationService.instance.requestPermission();
+      LocalNotificationService.instance.startPolling();
+
       await authProvider.syncRoleFromServer();
       if (!mounted) return;
 
@@ -51,15 +78,49 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _connectivityProvider?.checkNow();
+      LocalNotificationService.instance.pollNow();
+      if (mounted) {
+        final cart = Provider.of<CartProvider>(context, listen: false);
+        if (cart.hasPendingSync) {
+          cart.syncWithServer();
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (_reconnectCallback != null) {
+      _connectivityProvider?.removeReconnectListener(_reconnectCallback!);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final currentIndex = context.watch<NavigationProvider>().currentIndex;
 
     return Scaffold(
       backgroundColor: context.scaffoldBg,
       extendBody: true, // Biarkan konten scroll sedikit di balik nav bar kaca
-      body: IndexedStack(
-        index: currentIndex,
-        children: _pages,
+      body: Column(
+        children: [
+          // Banner status offline/online global — muncul untuk Guest, Pelanggan, maupun Admin
+          const SafeArea(
+            bottom: false,
+            child: OfflineStatusBanner(),
+          ),
+          Expanded(
+            child: IndexedStack(
+              index: currentIndex,
+              children: _pages,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildGlassmorphicNavBar(context, currentIndex),
     );

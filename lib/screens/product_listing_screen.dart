@@ -10,7 +10,7 @@ import 'limbah_detail_screen.dart';
 import 'cart_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/auth_guard.dart';
-import '../widgets/ecotahu_loader.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 import '../services/secure_storage_service.dart';
 
@@ -206,7 +206,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
 
           SafeArea(
             child: _isLoading
-                ? const EcoTahuLoadingIndicator()
+                ? const ProductGridShimmerSkeleton()
                 : _errorMessage != null
                     ? _buildErrorState()
                     : Padding(
@@ -649,22 +649,15 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
                         color: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
                       ),
-                      child: ClipRRect(
+                      child: EcoCachedImage(
+                        imageUrl: imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                        child: imageUrl.isNotEmpty
-                            ? Image.network(
-                                imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                cacheWidth: 600,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Center(
-                                  child: Icon(fallbackIcon, size: 40, color: tagTextColor),
-                                ),
-                              )
-                            : Center(
-                                child: Icon(fallbackIcon, size: 40, color: tagTextColor),
-                              ),
+                        fallbackIcon: fallbackIcon,
+                        fallbackColor: tagTextColor,
+                        fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                       ),
                     ),
 

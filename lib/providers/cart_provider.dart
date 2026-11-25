@@ -31,14 +31,18 @@ class CartItem {
 
 class CartProvider extends ChangeNotifier {
   static const String _storageKey = 'eco_tahu_cart_items_v1';
+  static const String _pendingSyncKey = 'eco_tahu_cart_pending_sync_v1';
 
   final List<CartItem> _items = [];
   bool _isAdminMode = false;
   bool _isSyncing = false;
+  bool _hasPendingSync = false;
 
   /// Mode Admin selalu melihat keranjang kosong (Read-Only) tanpa menghapus
   /// data keranjang milik akun pelanggan yang tersimpan lokal.
   List<CartItem> get items => _isAdminMode ? const [] : _items;
+  bool get hasPendingSync => !_isAdminMode && _hasPendingSync;
+  bool get isSyncing => _isSyncing;
 
   int get subtotal {
     if (_isAdminMode) return 0;
@@ -61,10 +65,19 @@ class CartProvider extends ChangeNotifier {
     await prefs.setString(_storageKey, encoded);
   }
 
+  Future<void> _setPendingSync(bool value) async {
+    if (_hasPendingSync == value) return;
+    _hasPendingSync = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_pendingSyncKey, value);
+    notifyListeners();
+  }
+
   /// Muat keranjang tersimpan saat startup, lalu sinkronkan dengan server jika login.
   Future<void> loadCart() async {
     final prefs = await SharedPreferences.getInstance();
     _isAdminMode = prefs.getBool('is_admin') ?? false;
+    _hasPendingSync = prefs.getBool(_pendingSyncKey) ?? false;
 
     final raw = prefs.getString(_storageKey);
     if (raw != null && raw.trim().isNotEmpty) {
@@ -93,6 +106,8 @@ class CartProvider extends ChangeNotifier {
   }
 
   /// Sinkronisasi dua arah antara keranjang lokal dan tabel `cart_items` di Laravel.
+  /// Jika terdapat perubahan lokal yang dibuat saat offline (`_hasPendingSync`),
+  /// perubahan lokal didorong ke server terlebih dahulu agar item tidak hilang/tertimpa.
   Future<void> syncWithServer() async {
     if (_isSyncing) return;
     final prefs = await SharedPreferences.getInstance();
@@ -106,19 +121,49 @@ class CartProvider extends ChangeNotifier {
     }
 
     _isSyncing = true;
+    notifyListeners();
     try {
-      final serverItems = await ApiService().getCart(token);
-      if (serverItems == null) return;
+      // 1. Bila ada perubahan offline yang belum terkirim ke server, flush state lokal sebagai sumber kebenaran
+      if (_hasPendingSync) {
+        final cleared = await ApiService().clearCartApi(token);
+        if (!cleared) return;
 
-      if (serverItems.isEmpty && _items.isNotEmpty) {
+        bool allPushed = true;
         for (final localItem in List<CartItem>.from(_items)) {
-          await ApiService().addCartItem(
+          final ok = await ApiService().addCartItem(
             token,
             itemType: localItem.product.type,
             itemId: localItem.product.id,
             qty: localItem.quantity,
           );
+          if (!ok) {
+            allPushed = false;
+            break;
+          }
         }
+
+        if (allPushed) {
+          await _setPendingSync(false);
+        }
+        return;
+      }
+
+      // 2. Normal two-way sync saat tidak ada antrean perubahan offline
+      final serverItems = await ApiService().getCart(token);
+      if (serverItems == null) return;
+
+      if (serverItems.isEmpty && _items.isNotEmpty) {
+        bool allOk = true;
+        for (final localItem in List<CartItem>.from(_items)) {
+          final ok = await ApiService().addCartItem(
+            token,
+            itemType: localItem.product.type,
+            itemId: localItem.product.id,
+            qty: localItem.quantity,
+          );
+          if (!ok) allOk = false;
+        }
+        if (!allOk) await _setPendingSync(true);
       } else if (serverItems.isNotEmpty) {
         final localSnapshot = List<CartItem>.from(_items);
         final merged = <CartItem>[];
@@ -159,6 +204,7 @@ class CartProvider extends ChangeNotifier {
       // Tetap pertahankan state keranjang lokal jika jaringan offline
     } finally {
       _isSyncing = false;
+      notifyListeners();
     }
   }
 
@@ -168,12 +214,15 @@ class CartProvider extends ChangeNotifier {
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
-    await ApiService().addCartItem(
+    final ok = await ApiService().addCartItem(
       token,
       itemType: product.type,
       itemId: product.id,
       qty: 1,
     );
+    if (!ok) {
+      await _setPendingSync(true);
+    }
   }
 
   Future<void> _pushQtyToServer(CartItem item) async {
@@ -182,12 +231,15 @@ class CartProvider extends ChangeNotifier {
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
-    await ApiService().updateCartItem(
+    final ok = await ApiService().updateCartItem(
       token,
       itemType: item.product.type,
       itemId: item.product.id,
       qty: item.quantity,
     );
+    if (!ok) {
+      await _setPendingSync(true);
+    }
   }
 
   Future<void> _pushRemoveFromServer(CartItem item) async {
@@ -196,11 +248,14 @@ class CartProvider extends ChangeNotifier {
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
-    await ApiService().removeCartItem(
+    final ok = await ApiService().removeCartItem(
       token,
       itemType: item.product.type,
       itemId: item.product.id,
     );
+    if (!ok) {
+      await _setPendingSync(true);
+    }
   }
 
   // Tambah ke keranjang (tersimpan lokal + database)
@@ -238,9 +293,12 @@ class CartProvider extends ChangeNotifier {
     if (syncServer && !_isAdminMode) {
       final token = await SecureStorageService.readToken();
       if (token != null && token.trim().isNotEmpty) {
-        await ApiService().clearCartApi(token);
+        final ok = await ApiService().clearCartApi(token);
+        await _setPendingSync(!ok);
+        return;
       }
     }
+    await _setPendingSync(false);
   }
 
   // Tambah kuantitas

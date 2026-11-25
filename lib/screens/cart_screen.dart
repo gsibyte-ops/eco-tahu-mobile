@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/connectivity_provider.dart';
 import '../providers/store_provider.dart';
 import 'checkout_screen.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/offline_banner.dart';
+import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 
 class CartScreen extends StatefulWidget {
@@ -23,6 +26,10 @@ class _CartScreenState extends State<CartScreen> {
 
   // === FUNGSI UNTUK WHATSAPP ===
   Future<void> _checkoutViaWhatsApp(CartProvider cart) async {
+    if (context.read<ConnectivityProvider>().isOffline) {
+      showOfflineActionAlert(context, actionLabel: 'pesan via WhatsApp');
+      return;
+    }
     final canProceed = await AuthGuard.requireAuth(
       context,
       actionMessage: 'melakukan pemesanan via WhatsApp',
@@ -345,6 +352,40 @@ class _CartScreenState extends State<CartScreen> {
                       _buildAdminReadOnlyBanner(context),
                       const SizedBox(height: 14),
                     ],
+                    const OfflineStatusBanner(margin: EdgeInsets.only(bottom: 12)),
+                    if (cart.hasPendingSync) ...[
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: context.isDark
+                              ? const Color(0xFF78350F).withValues(alpha: 0.28)
+                              : const Color(0xFFFFFBEB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.cloud_off_rounded, size: 18, color: Color(0xFFD97706)),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Perubahan keranjang tersimpan lokal di HP Anda dan otomatis dikirim ke server begitu internet aktif.',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w600,
+                                  color: context.isDark ? const Color(0xFFFDE68A) : const Color(0xFF92400E),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -394,41 +435,15 @@ class _CartScreenState extends State<CartScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Gambar Produk
-                            ClipRRect(
+                            // Gambar Produk (Cached Offline)
+                            EcoCachedImage(
+                              imageUrl: item.product.imageUrl,
+                              width: 76,
+                              height: 76,
                               borderRadius: BorderRadius.circular(14),
-                              child: item.product.imageUrl.isNotEmpty
-                                  ? Image.network(
-                                      item.product.imageUrl,
-                                      width: 76,
-                                      height: 76,
-                                      cacheWidth: 400,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Container(
-                                        width: 76,
-                                        height: 76,
-                                        color: isLimbah ? context.limbahTagBg : context.tahuTagBg,
-                                        child: Center(
-                                          child: Icon(
-                                            isLimbah ? Icons.recycling_rounded : Icons.eco_rounded,
-                                            size: 32,
-                                            color: isLimbah ? context.brandAmber : context.brandGreen,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      width: 76,
-                                      height: 76,
-                                      color: isLimbah ? context.limbahTagBg : context.tahuTagBg,
-                                      child: Center(
-                                        child: Icon(
-                                          isLimbah ? Icons.recycling_rounded : Icons.eco_rounded,
-                                          size: 32,
-                                          color: isLimbah ? context.brandAmber : context.brandGreen,
-                                        ),
-                                      ),
-                                    ),
+                              fallbackIcon: isLimbah ? Icons.recycling_rounded : Icons.eco_rounded,
+                              fallbackColor: isLimbah ? context.brandAmber : context.brandGreen,
+                              fallbackBgColor: isLimbah ? context.limbahTagBg : context.tahuTagBg,
                             ),
                             const SizedBox(width: 14),
 
@@ -614,6 +629,13 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                           ElevatedButton(
                             onPressed: () async {
+                              if (context.read<ConnectivityProvider>().isOffline) {
+                                showOfflineActionAlert(
+                                  context,
+                                  actionLabel: 'checkout pesanan (keranjang Anda tetap tersimpan lokal)',
+                                );
+                                return;
+                              }
                               final canProceed = await AuthGuard.requireAuth(
                                 context,
                                 actionMessage: 'melakukan checkout pesanan',

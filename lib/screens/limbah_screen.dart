@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import 'limbah_detail_screen.dart';
 import 'cart_screen.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/shimmer_skeletons.dart';
 
 class LimbahScreen extends StatefulWidget {
   const LimbahScreen({super.key});
@@ -176,7 +177,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
                   // Grid Limbah
                   Expanded(
                     child: _isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFFD97706)))
+                        ? const ProductGridShimmerSkeleton(includeSearchHeader: false)
                         : _errorMessage != null
                             ? _buildErrorState()
                             : _filteredLimbah.isEmpty
@@ -303,22 +304,15 @@ class _LimbahScreenState extends State<LimbahScreen> {
                         color: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
                       ),
-                      child: ClipRRect(
+                      child: EcoCachedImage(
+                        imageUrl: limbah.imageUrl,
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                        child: limbah.imageUrl.isNotEmpty
-                            ? Image.network(
-                                limbah.imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                cacheWidth: 600,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => Center(
-                                  child: Icon(Icons.recycling_rounded, size: 40, color: context.brandAmber),
-                                ),
-                              )
-                            : Center(
-                                child: Icon(Icons.recycling_rounded, size: 40, color: context.brandAmber),
-                              ),
+                        fallbackIcon: Icons.recycling_rounded,
+                        fallbackColor: context.brandAmber,
+                        fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                       ),
                     ),
 
