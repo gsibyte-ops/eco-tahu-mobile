@@ -275,39 +275,44 @@ class AuthProvider extends ChangeNotifier {
 
       String? googleIdToken;
       String? googleAccessToken;
+      String? firebaseIdToken;
+      String email = '';
+      String name = '';
 
       if (kIsWeb) {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
         googleProvider.setCustomParameters({'prompt': 'select_account'});
         userCredential = await FirebaseAuth.instance.signInWithPopup(googleProvider);
+        firebaseIdToken = await userCredential.user?.getIdToken();
+        email = userCredential.user?.email ?? '';
+        name = userCredential.user?.displayName ?? '';
       } else {
-        final GoogleSignIn googleSignIn = GoogleSignIn();
+        // Pakai langsung Google OAuth milik project Google Cloud eco-tahu (gsibyte@gmail.com)
+        // tanpa bergantung pada project Firebase pihak ketiga
+        const String webServerClientId =
+            '713906323738-es2g9gojhatkbujn0pkg03vhjf50p4bu.apps.googleusercontent.com';
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: const ['email', 'profile'],
+          serverClientId: webServerClientId,
+        );
         await googleSignIn.signOut();
         final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
         if (googleUser == null) {
-          return {'success': false, 'message': 'Login Google dibatalkan'};
+          return {'success': false, 'isCancelled': true, 'message': 'Login Google dibatalkan'};
         }
 
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
         googleIdToken = googleAuth.idToken;
         googleAccessToken = googleAuth.accessToken;
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        email = googleUser.email;
+        name = googleUser.displayName ?? '';
       }
-
-      final firebaseIdToken = await userCredential.user?.getIdToken();
-      final email = userCredential.user?.email ?? '';
-      final name = userCredential.user?.displayName ?? '';
 
       if (email.isEmpty) {
         return {'success': false, 'message': 'Email Google tidak ditemukan.'};
       }
 
-      // Hubungkan dengan Laravel Sanctum API menggunakan token Google/Firebase terverifikasi
+      // Hubungkan dengan Laravel Sanctum API menggunakan token Google terverifikasi
       final apiResult = await ApiService().loginWithGoogle(
         idToken: googleIdToken,
         accessToken: googleAccessToken,
