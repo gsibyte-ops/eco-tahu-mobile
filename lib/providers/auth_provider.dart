@@ -272,6 +272,9 @@ class AuthProvider extends ChangeNotifier {
     try {
       UserCredential? userCredential;
 
+      String? googleIdToken;
+      String? googleAccessToken;
+
       if (kIsWeb) {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
         googleProvider.setCustomParameters({'prompt': 'select_account'});
@@ -285,6 +288,8 @@ class AuthProvider extends ChangeNotifier {
         }
 
         final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+        googleIdToken = googleAuth.idToken;
+        googleAccessToken = googleAuth.accessToken;
         final credential = GoogleAuthProvider.credential(
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
@@ -293,21 +298,19 @@ class AuthProvider extends ChangeNotifier {
         userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
       }
 
+      final firebaseIdToken = await userCredential.user?.getIdToken();
       final email = userCredential.user?.email ?? '';
       final name = userCredential.user?.displayName ?? '';
-      final googleId = userCredential.user?.uid ?? '';
-      final photoUrl = userCredential.user?.photoURL ?? '';
 
       if (email.isEmpty) {
         return {'success': false, 'message': 'Email Google tidak ditemukan.'};
       }
 
-      // Hubungkan dengan Laravel Sanctum API
+      // Hubungkan dengan Laravel Sanctum API menggunakan token Google/Firebase terverifikasi
       final apiResult = await ApiService().loginWithGoogle(
-        email: email,
-        name: name,
-        googleId: googleId,
-        avatar: photoUrl,
+        idToken: googleIdToken,
+        accessToken: googleAccessToken,
+        firebaseIdToken: firebaseIdToken,
       );
 
       if (apiResult['success'] != true) {

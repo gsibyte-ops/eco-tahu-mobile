@@ -70,7 +70,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ],
           ),
           content: Text(
-            'Link dan kode reset telah dikirim ke $email. Anda bisa langsung membuat password baru sekarang di aplikasi.',
+            'Jika email $email terdaftar, link dan kode reset telah dikirim ke inbox email Anda. Silakan cek email lalu masukkan kode reset di halaman berikutnya.',
             style: TextStyle(fontSize: 13, height: 1.4, color: context.textSecondary),
           ),
           actions: [

@@ -97,20 +97,18 @@ class ApiService {
 
   // === FUNGSI LOGIN / REGISTER GOOGLE ===
   Future<Map<String, dynamic>> loginWithGoogle({
-    required String email,
-    String? name,
-    String? googleId,
-    String? avatar,
+    String? idToken,
+    String? accessToken,
+    String? firebaseIdToken,
   }) async {
     try {
       final response = await _post(
         Uri.parse('$baseUrl/auth/google'),
         headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
         body: jsonEncode({
-          'email': email,
-          'name': name,
-          'google_id': googleId,
-          'avatar': avatar,
+          'id_token': idToken,
+          'access_token': accessToken,
+          'firebase_id_token': firebaseIdToken,
         }),
       );
       final data = jsonDecode(response.body);

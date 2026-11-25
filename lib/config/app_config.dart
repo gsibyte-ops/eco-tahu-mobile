@@ -3,7 +3,7 @@ class AppConfig {
   /// flutter build apk --release --dart-define=API_HOST=https://domain-kamu.com
   static const String host = String.fromEnvironment(
     'API_HOST',
-    defaultValue: 'http://localhost:8000',
+    defaultValue: 'https://eco-tahu-production.up.railway.app',
   );
   static const String apiBaseUrl = '$host/api';
 
