@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/recipe.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ecotahu_loader.dart';
 import 'recipe_detail_screen.dart';
+import '../services/secure_storage_service.dart';
 
 class RecipeScreen extends StatefulWidget {
   const RecipeScreen({super.key});
@@ -31,8 +31,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   Future<void> _fetchRecipes() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('auth_token');
+      final token = await SecureStorageService.readToken();
       final recipes = await ApiService().getRecipes(token);
       if (mounted) {
         setState(() {

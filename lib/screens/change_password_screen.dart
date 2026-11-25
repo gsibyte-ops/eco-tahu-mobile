@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../services/secure_storage_service.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -42,9 +42,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 8) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password baru minimal 6 karakter!'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Password baru minimal 8 karakter!'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -58,8 +58,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
 
     final res = await ApiService().changePassword(
       token: token,
@@ -139,7 +138,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 controller: _newPasswordController,
                 obscure: _obscureNew,
                 onToggle: () => setState(() => _obscureNew = !_obscureNew),
-                hint: 'Minimal 6 karakter',
+                hint: 'Minimal 8 karakter',
               ),
               const SizedBox(height: 18),
 

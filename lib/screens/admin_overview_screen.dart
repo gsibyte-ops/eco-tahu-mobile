@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/media_preview_widgets.dart';
+import '../services/secure_storage_service.dart';
 
 class AdminOverviewScreen extends StatefulWidget {
   const AdminOverviewScreen({super.key});
@@ -33,8 +33,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
       _errorMessage = null;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
     if (token.isEmpty) {
       if (mounted) {
         setState(() {

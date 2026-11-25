@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../services/secure_storage_service.dart';
 
 class CartItem {
   final Product product;
@@ -85,7 +86,7 @@ class CartProvider extends ChangeNotifier {
 
     notifyListeners();
 
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (token != null && token.trim().isNotEmpty && !_isAdminMode) {
       await syncWithServer();
     }
@@ -98,7 +99,7 @@ class CartProvider extends ChangeNotifier {
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     _isAdminMode = isAdmin;
 
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (isAdmin || token == null || token.trim().isEmpty) {
       notifyListeners();
       return;
@@ -163,7 +164,7 @@ class CartProvider extends ChangeNotifier {
 
   Future<void> _pushAddToServer(Product product) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
@@ -177,7 +178,7 @@ class CartProvider extends ChangeNotifier {
 
   Future<void> _pushQtyToServer(CartItem item) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
@@ -191,7 +192,7 @@ class CartProvider extends ChangeNotifier {
 
   Future<void> _pushRemoveFromServer(CartItem item) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     final isAdmin = prefs.getBool('is_admin') ?? _isAdminMode;
     if (isAdmin || token == null || token.trim().isEmpty) return;
 
@@ -235,7 +236,7 @@ class CartProvider extends ChangeNotifier {
     await prefs.remove(_storageKey);
 
     if (syncServer && !_isAdminMode) {
-      final token = prefs.getString('auth_token');
+      final token = await SecureStorageService.readToken();
       if (token != null && token.trim().isNotEmpty) {
         await ApiService().clearCartApi(token);
       }

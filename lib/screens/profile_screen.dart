@@ -22,6 +22,7 @@ import 'refund_policy_screen.dart';
 import 'faq_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_screen.dart';
+import '../services/secure_storage_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -45,8 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Fungsi untuk mengambil data profil dari API
   Future<void> _loadUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
 
     if (token == null) {
       if (mounted) {
@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       
       // 2. Hapus token & status role dari HP (keranjang tetap tersimpan)
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
+      await SecureStorageService.deleteToken();
       await prefs.remove('is_admin');
       if (mounted) {
         await Provider.of<AuthProvider>(context, listen: false).setAdminStatus(false);

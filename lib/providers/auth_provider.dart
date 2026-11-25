@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:convert';
 import '../services/api_service.dart';
+import '../services/secure_storage_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   bool _isLoggedIn = false;
@@ -51,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> syncRoleFromServer() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (token == null || token.trim().isEmpty) {
       _isAdmin = false;
       await prefs.remove('is_admin');
@@ -117,7 +118,7 @@ class AuthProvider extends ChangeNotifier {
       }
     }
 
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (token != null && token.trim().isNotEmpty) {
       await syncRoleFromServer();
     }
@@ -140,8 +141,8 @@ class AuthProvider extends ChangeNotifier {
       if (name.isEmpty || email.isEmpty || password.isEmpty) {
         return {'success': false, 'message': 'Semua kolom wajib diisi!'};
       }
-      if (password.length < 6) {
-        return {'success': false, 'message': 'Password minimal 6 karakter!'};
+      if (password.length < 8) {
+        return {'success': false, 'message': 'Password minimal 8 karakter!'};
       }
       if (!email.contains('@')) {
         return {'success': false, 'message': 'Format email tidak valid!'};
@@ -182,7 +183,7 @@ class AuthProvider extends ChangeNotifier {
           message = 'Format email tidak valid.';
           break;
         case 'weak-password':
-          message = 'Password terlalu lemah (min. 6 karakter).';
+          message = 'Password terlalu lemah (min. 8 karakter).';
           break;
         default:
           message = 'Pendaftaran gagal: ${e.message}';
@@ -260,7 +261,7 @@ class AuthProvider extends ChangeNotifier {
     _userEmail = email;
     if (name != null && name.isNotEmpty) _userName = name;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
+    await SecureStorageService.saveToken(token);
     await prefs.setBool('isLoggedIn', true);
     await prefs.setString('currentEmail', email);
     if (name != null && name.isNotEmpty) await prefs.setString('userName', name);
@@ -331,7 +332,7 @@ class AuthProvider extends ChangeNotifier {
       // Save session di SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('auth_token', token);
+      await SecureStorageService.saveToken(token);
       await prefs.setBool('is_admin', adminFlag);
       await prefs.setString('currentEmail', _userEmail);
       await prefs.setString('userName', _userName);
@@ -383,7 +384,12 @@ class AuthProvider extends ChangeNotifier {
 
   //LOGOUT
   Future<void> logout() async {
+    final prevEmail = _userEmail;
     try {
+      final token = await SecureStorageService.readToken();
+      if (token != null && token.trim().isNotEmpty) {
+        await ApiService().logout(token);
+      }
       if (!kIsWeb) {
         await GoogleSignIn().signOut();
       }
@@ -393,6 +399,9 @@ class AuthProvider extends ChangeNotifier {
         debugPrint('Logout error: $e');
       }
     }
+
+    // Hapus token terenkripsi dari Keystore
+    await SecureStorageService.deleteToken();
 
     // Reset state di memory
     _isLoggedIn = false;
@@ -406,13 +415,15 @@ class AuthProvider extends ChangeNotifier {
     _userAddress = '';
     _userPhotoBase64 = '';
 
-    // HANYA hapus session flag, BUKAN data profil!
+    // Hapus session & cache data pribadi agar tidak tertinggal di perangkat
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('isLoggedIn');
     await prefs.remove('currentEmail');
+    await prefs.remove('userName');
     await prefs.remove('is_admin');
-    // Data 'profile_<email>' TETAP tersimpan
-    // Data 'orders' TETAP tersimpan
+    if (prevEmail.isNotEmpty) {
+      await prefs.remove('profile_$prevEmail');
+    }
 
     notifyListeners();
   }

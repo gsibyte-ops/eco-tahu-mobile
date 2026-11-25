@@ -1,13 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/recipe.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_guard.dart';
 import '../widgets/media_preview_widgets.dart';
+import '../services/secure_storage_service.dart';
 
 class RecipeDetailScreen extends StatefulWidget {
   final Recipe recipe;
@@ -60,8 +60,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
       _likesCount = (prevCount + (_isLiked ? 1 : -1)).clamp(0, 9999999);
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
     final res = await ApiService().toggleRecipeLike(token, widget.recipe.id);
 
     if (!mounted) return;

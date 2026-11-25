@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../models/limbah.dart';
 import '../models/article.dart';
@@ -19,6 +18,7 @@ import '../widgets/auth_guard.dart';
 import '../widgets/ecotahu_loader.dart';
 import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart';
+import '../services/secure_storage_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,8 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token'); 
+    final token = await SecureStorageService.readToken(); 
 
     try {
       final products = await _apiService.getProducts(token);

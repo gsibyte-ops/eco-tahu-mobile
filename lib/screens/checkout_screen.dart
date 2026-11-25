@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order.dart';
 import '../providers/cart_provider.dart';
 import '../providers/order_provider.dart';
@@ -16,6 +15,7 @@ import '../widgets/auth_guard.dart';
 import 'transfer_payment_screen.dart';
 import 'order_success_screen.dart';
 import '../theme/app_theme.dart';
+import '../services/secure_storage_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -90,8 +90,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _loadUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (token != null) {
       final profile = await ApiService().getUserProfile(token);
       if (profile != null && mounted) {
@@ -119,8 +118,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _checkFirstOrderPromo() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
     if (token == null || !mounted) return;
 
     final subtotal = Provider.of<CartProvider>(context, listen: false).subtotal;
@@ -373,8 +371,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final finalShippingCost = _shippingMethod == 'delivery' ? _shippingCost : 0;
     final totalBayar = (subtotal - discountAmount).clamp(0, 1 << 30) + finalShippingCost;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
 
     if (token == null) {
       setState(() => _isProcessing = false);

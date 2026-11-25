@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
@@ -13,6 +12,7 @@ import 'main_screen.dart';
 import 'help_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_screen.dart';
+import '../services/secure_storage_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -59,8 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', result['token']);
+      await SecureStorageService.saveToken(result['token']);
       if (!mounted) return;
 
       final userMap = result['user'] is Map<String, dynamic>

@@ -21,3 +21,8 @@
 
 # Flutter deferred components optional Play Core references (AGP 8/9+ R8)
 -dontwarn com.google.android.play.core.**
+
+# Flutter Secure Storage & Google Tink AES-256 EncryptedSharedPreferences
+-keep class com.it_nomads.fluttersecurestorage.** { *; }
+-keep class com.google.crypto.tink.** { *; }
+-dontwarn com.google.crypto.tink.**

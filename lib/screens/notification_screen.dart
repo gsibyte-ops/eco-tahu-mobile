@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../services/secure_storage_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -26,8 +26,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   Future<void> _loadNotifications() async {
     setState(() => _isLoading = true);
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('auth_token');
+    _token = await SecureStorageService.readToken();
 
     if (_token != null && _token!.isNotEmpty) {
       final res = await _apiService.getNotifications(_token!);

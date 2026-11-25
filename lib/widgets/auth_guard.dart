@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/login_screen.dart';
+import '../services/secure_storage_service.dart';
 
 class AuthGuard {
   /// Memeriksa apakah user sudah login DAN bukan Admin (Mode Read-Only).
@@ -17,7 +18,7 @@ class AuthGuard {
     String actionMessage = 'melanjutkan aksi ini',
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
 
     // Jika token kosong, user masih Guest
     if (token == null || token.trim().isEmpty) {

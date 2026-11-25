@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
 import '../models/limbah.dart'; 
 import '../providers/cart_provider.dart';
@@ -13,6 +12,7 @@ import '../services/api_service.dart';
 import '../widgets/auth_guard.dart';
 import '../widgets/ecotahu_loader.dart';
 import '../theme/app_theme.dart';
+import '../services/secure_storage_service.dart';
 
 class ProductListingScreen extends StatefulWidget {
   final String initialTab;
@@ -64,8 +64,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
   }
 
   Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
 
     try {
       final products = await _apiService.getProducts(token);

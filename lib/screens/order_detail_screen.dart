@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:typed_data';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -13,6 +12,7 @@ import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../utils/media_validator.dart';
 import '../widgets/auth_guard.dart';
+import '../services/secure_storage_service.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final Order order;
@@ -107,8 +107,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final Uint8List fileBytes = await _selectedImage!.readAsBytes();
     final String fileName = _selectedImage!.name;
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
 
     final result = await ApiService().uploadBuktiTransfer(
       token: token,
@@ -356,8 +355,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                     onPressed: (canSubmit && !isProcessing)
                                         ? () async {
                                             setStateDialog(() => isProcessing = true);
-                                            final prefs = await SharedPreferences.getInstance();
-                                            final token = prefs.getString('auth_token') ?? '';
+                                            final token = (await SecureStorageService.readToken()) ?? '';
 
                                             final res = await ApiService().cancelOrder(
                                               token: token,
@@ -698,8 +696,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                       ? null
                                       : () async {
                                           setStateDialog(() => isSubmitting = true);
-                                          final prefs = await SharedPreferences.getInstance();
-                                          final token = prefs.getString('auth_token') ?? '';
+                                          final token = (await SecureStorageService.readToken()) ?? '';
 
                                           final res = await ApiService().submitReview(
                                             token: token,
@@ -751,8 +748,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _showTrackingDialog(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
 
     if (!context.mounted) return;
     showDialog(

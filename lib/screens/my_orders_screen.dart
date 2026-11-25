@@ -1,11 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order.dart';
 import '../theme/app_theme.dart';
 import 'order_detail_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/ecotahu_loader.dart';
+import '../services/secure_storage_service.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
@@ -29,8 +29,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   }
 
   Future<void> _fetchOrders() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final token = await SecureStorageService.readToken();
 
     if (token == null) {
       if (mounted) {
@@ -190,8 +189,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                                       ? () async {
                                           setStateDialog(() => isProcessing = true);
 
-                                          final prefs = await SharedPreferences.getInstance();
-                                          final token = prefs.getString('auth_token') ?? '';
+                                          final token = (await SecureStorageService.readToken()) ?? '';
 
                                           final res = await ApiService().cancelOrder(
                                             token: token,

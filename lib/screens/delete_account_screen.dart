@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auth_guard.dart';
 import 'main_screen.dart';
+import '../services/secure_storage_service.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key});
@@ -66,8 +66,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
 
     setState(() => _isLoading = true);
 
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
+    final token = (await SecureStorageService.readToken()) ?? '';
 
     final res = await ApiService().deleteAccount(token: token, password: password);
 
@@ -75,7 +74,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen> {
     setState(() => _isLoading = false);
 
     if (res['success'] == true) {
-      await prefs.remove('auth_token');
+      await SecureStorageService.deleteToken();
 
       Navigator.pushAndRemoveUntil(
         context,
