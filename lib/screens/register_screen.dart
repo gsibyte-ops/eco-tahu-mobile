@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../providers/auth_provider.dart';
@@ -61,6 +62,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _phoneController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Semua kolom wajib diisi!'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
+    if (!RegExp(r'^(\+62|62|0)[0-9]{8,14}$').hasMatch(_phoneController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nomor telepon harus berupa angka valid (contoh: 081234567890).'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -523,6 +534,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hint: '08xxxxxxxxxx',
                             icon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                              LengthLimitingTextInputFormatter(16),
+                            ],
                           ),
                           const SizedBox(height: 16),
 
@@ -750,11 +765,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool obscureText = false,
     VoidCallback? onTogglePassword,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: TextStyle(fontSize: 14, color: context.textPrimary),
       decoration: InputDecoration(
         hintText: hint,

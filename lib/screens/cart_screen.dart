@@ -24,6 +24,105 @@ class _CartScreenState extends State<CartScreen> {
     return 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
   }
 
+  /// Format ringkasan Total Item secara akurat berdasarkan satuan produk:
+  /// - Hanya 1 jenis satuan (mis. hanya kg atau hanya pcs) -> "3 kg" / "5 pcs"
+  /// - Campuran Tahu + Limbah -> "3 pcs, 2 kg"
+  String _formatTotalItems(List<CartItem> items) {
+    if (items.isEmpty) return '0 item';
+    final Map<String, int> totalsByUnit = {};
+    for (final item in items) {
+      final rawUnit = item.product.satuan.trim().toLowerCase();
+      final unit = rawUnit.isNotEmpty
+          ? rawUnit
+          : (item.product.type == 'limbah' ? 'kg' : 'pcs');
+      totalsByUnit[unit] = (totalsByUnit[unit] ?? 0) + item.quantity;
+    }
+    return totalsByUnit.entries.map((e) => '${e.value} ${e.key}').join(', ');
+  }
+
+  Future<void> _showDirectQtyDialog(CartProvider cart, CartItem item) async {
+    final controller = TextEditingController(text: '${item.quantity}');
+    final maxStok = item.product.stok;
+    final unit = item.product.satuan.isNotEmpty
+        ? item.product.satuan
+        : (item.product.type == 'limbah' ? 'kg' : 'pcs');
+
+    final result = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: context.cardBg,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            'Ubah Jumlah',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: context.textPrimary),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                item.product.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: context.textSecondary),
+              ),
+              if (maxStok > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Stok tersedia: $maxStok $unit',
+                  style: TextStyle(fontSize: 11.5, color: context.brandGreen, fontWeight: FontWeight.w600),
+                ),
+              ],
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: context.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Jumlah ($unit)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Batal', style: TextStyle(color: context.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final parsed = int.tryParse(controller.text.replaceAll(RegExp(r'[^0-9]'), ''));
+                Navigator.pop(ctx, parsed ?? item.quantity);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.brandGreenSolid,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result != null && mounted) {
+      final applied = cart.setQuantity(item, result);
+      if (maxStok > 0 && result > maxStok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Stok maksimal $maxStok $unit (disesuaikan ke $applied $unit)'),
+            backgroundColor: const Color(0xFFD97706),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   // === FUNGSI UNTUK WHATSAPP ===
   Future<void> _checkoutViaWhatsApp(CartProvider cart) async {
     if (context.read<ConnectivityProvider>().isOffline) {
@@ -477,7 +576,9 @@ class _CartScreenState extends State<CartScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    item.product.price,
+                                    item.product.stok > 0
+                                        ? '${item.product.price} · Stok: ${item.product.stok}'
+                                        : item.product.price,
                                     style: TextStyle(color: context.textSecondary, fontSize: 11.5),
                                   ),
                                   const SizedBox(height: 10),
@@ -485,7 +586,7 @@ class _CartScreenState extends State<CartScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Quantity Controls
+                                      // Quantity Controls (tap angka untuk ketik langsung)
                                       Container(
                                         decoration: BoxDecoration(
                                           color: context.isDark ? AppTheme.darkBorder : const Color(0xFFF1F5F9),
@@ -494,18 +595,34 @@ class _CartScreenState extends State<CartScreen> {
                                         child: Row(
                                           children: [
                                             _buildQtyButton(Icons.remove_rounded, () => cart.decreaseQuantity(item)),
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                                              child: Text(
-                                                '${item.quantity}',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 13,
-                                                  color: context.textPrimary,
+                                            InkWell(
+                                              onTap: () => _showDirectQtyDialog(cart, item),
+                                              borderRadius: BorderRadius.circular(6),
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                child: Text(
+                                                  '${item.quantity}',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: 13,
+                                                    color: context.textPrimary,
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                            _buildQtyButton(Icons.add_rounded, () => cart.increaseQuantity(item)),
+                                            _buildQtyButton(Icons.add_rounded, () {
+                                              final ok = cart.increaseQuantity(item);
+                                              if (!ok && item.product.stok > 0) {
+                                                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Stok maksimal ${item.product.stok} ${item.product.satuan}'),
+                                                    backgroundColor: const Color(0xFFD97706),
+                                                    behavior: SnackBarBehavior.floating,
+                                                  ),
+                                                );
+                                              }
+                                            }),
                                           ],
                                         ),
                                       ),
@@ -559,7 +676,7 @@ class _CartScreenState extends State<CartScreen> {
                           const SizedBox(height: 14),
                           _buildSummaryRow(
                             'Total Item',
-                            '${cart.items.fold(0, (sum, item) => sum + item.quantity)} pcs/kg',
+                            _formatTotalItems(cart.items),
                           ),
                           const SizedBox(height: 10),
                           _buildSummaryRow('Subtotal Produk', formatCurrency(cart.subtotal)),

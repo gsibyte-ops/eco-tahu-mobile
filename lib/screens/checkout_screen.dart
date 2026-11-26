@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../models/order.dart';
+import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/order_provider.dart';
@@ -65,6 +66,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void initState() {
     super.initState();
     _phoneController.addListener(_onPhoneChangedForPromo);
+
+    // Pre-fill cepat dari AuthProvider agar langsung terisi sejak frame pertama
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.userName.isNotEmpty) _nameController.text = auth.userName;
+    if (auth.userPhone.isNotEmpty) _phoneController.text = auth.userPhone;
+    if (auth.userAddress.isNotEmpty) _addressController.text = auth.userAddress;
+
     _loadUserProfile();
 
     final store = Provider.of<StoreProvider>(context, listen: false);
@@ -97,15 +105,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (token != null) {
       final profile = await ApiService().getUserProfile(token);
       if (profile != null && mounted) {
+        final fullName = (profile['name'] ?? profile['username'])?.toString().trim() ?? '';
+        final phoneVal = profile['no_telepon']?.toString().trim() ?? '';
+        final addrVal = profile['alamat']?.toString().trim() ?? '';
         setState(() {
-          if (_nameController.text.isEmpty && profile['name'] != null) {
-            _nameController.text = profile['name'];
+          if (_nameController.text.trim().isEmpty && fullName.isNotEmpty) {
+            _nameController.text = fullName;
           }
-          if (_phoneController.text.isEmpty && profile['no_telepon'] != null) {
-            _phoneController.text = profile['no_telepon'];
+          if (_phoneController.text.trim().isEmpty && phoneVal.isNotEmpty) {
+            _phoneController.text = phoneVal;
           }
-          if (_addressController.text.isEmpty && profile['alamat'] != null) {
-            _addressController.text = profile['alamat'];
+          if (_addressController.text.trim().isEmpty && addrVal.isNotEmpty) {
+            _addressController.text = addrVal;
           }
         });
         _checkFirstOrderPromo();

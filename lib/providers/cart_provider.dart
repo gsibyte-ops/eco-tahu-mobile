@@ -301,13 +301,32 @@ class CartProvider extends ChangeNotifier {
     await _setPendingSync(false);
   }
 
-  // Tambah kuantitas
-  void increaseQuantity(CartItem item) {
-    if (_isAdminMode) return;
+  // Tambah kuantitas (menghormati batas stok bila tersedia)
+  bool increaseQuantity(CartItem item) {
+    if (_isAdminMode) return false;
+    if (item.product.stok > 0 && item.quantity >= item.product.stok) {
+      return false;
+    }
     item.quantity++;
     notifyListeners();
     _saveToPrefs();
     _pushQtyToServer(item);
+    return true;
+  }
+
+  // Set kuantitas langsung (ketik manual di keranjang)
+  int setQuantity(CartItem item, int requestedQty) {
+    if (_isAdminMode) return item.quantity;
+    int clamped = requestedQty < 1 ? 1 : requestedQty;
+    if (item.product.stok > 0 && clamped > item.product.stok) {
+      clamped = item.product.stok;
+    }
+    if (clamped == item.quantity) return clamped;
+    item.quantity = clamped;
+    notifyListeners();
+    _saveToPrefs();
+    _pushQtyToServer(item);
+    return clamped;
   }
 
   // Kurangi kuantitas

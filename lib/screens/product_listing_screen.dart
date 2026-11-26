@@ -474,7 +474,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       itemCount: products.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.62,
+        mainAxisExtent: 322,
         crossAxisSpacing: 14,
         mainAxisSpacing: 16,
       ),
@@ -489,6 +489,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           categoryName: 'Tahu',
           imageUrl: product.imageUrl,
           priceValue: product.priceValue,
+          stok: product.stok,
           unit: product.satuan,
           rating: product.rating,
           reviewsCount: product.reviewsCount,
@@ -537,7 +538,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       itemCount: limbahList.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.62,
+        mainAxisExtent: 322,
         crossAxisSpacing: 14,
         mainAxisSpacing: 16,
       ),
@@ -552,6 +553,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           categoryName: 'Limbah',
           imageUrl: limbah.imageUrl,
           priceValue: limbah.priceValue,
+          stok: limbah.stok,
           unit: limbah.satuan,
           rating: limbah.rating,
           reviewsCount: limbah.reviewsCount,
@@ -601,6 +603,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     required String categoryName,
     required String imageUrl,
     required int priceValue,
+    required int stok,
     required double rating,
     required int reviewsCount,
     String? unit,
@@ -616,7 +619,11 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     required VoidCallback onTap,
     required VoidCallback onAddToCart,
   }) {
+    final bool isOutOfStock = stok <= 0;
+    final String unitText = (unit != null && unit.trim().isNotEmpty) ? unit.trim() : 'pcs';
+
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.cardBg,
         borderRadius: BorderRadius.circular(20),
@@ -629,203 +636,219 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Gambar Produk & Badge
-              Expanded(
-                flex: 5,
-                child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
+                    SizedBox(
+                      height: 126,
                       width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                      ),
-                      child: EcoCachedImage(
-                        imageUrl: imageUrl,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                        fallbackIcon: fallbackIcon,
-                        fallbackColor: tagTextColor,
-                        fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
-                      ),
-                    ),
-
-                    if (badgeText != null)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: badgeColors),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: badgeColors.first.withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                      child: Stack(
+                        children: [
+                          EcoCachedImage(
+                            imageUrl: imageUrl,
+                            width: double.infinity,
+                            height: 126,
+                            fit: BoxFit.cover,
+                            fallbackIcon: fallbackIcon,
+                            fallbackColor: tagTextColor,
+                            fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (badgeIcon != null) ...[
-                                Icon(badgeIcon, size: 11, color: Colors.white),
-                                const SizedBox(width: 3),
-                              ],
-                              Text(
-                                badgeText,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
+                          if (badgeText != null)
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(colors: badgeColors),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: badgeColors.first.withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (badgeIcon != null) ...[
+                                      Icon(badgeIcon, size: 11, color: Colors.white),
+                                      const SizedBox(width: 3),
+                                    ],
+                                    Text(
+                                      badgeText,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Detail Produk
-              Expanded(
-                flex: 6,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Kategori Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: tagBgColor,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: tagBorderColor, width: 1),
-                        ),
-                        child: Text(
-                          categoryName,
-                          style: TextStyle(
-                            color: tagTextColor,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-
-                      // Nama Produk
-                      Text(
-                        name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                          height: 1.25,
-                          color: context.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Rating
-                      Row(
-                        children: [
-                          ...List.generate(5, (index) {
-                            final int starNo = index + 1;
-                            final bool isFilled = reviewsCount > 0 && starNo <= rating.round();
-                            return Icon(
-                              Icons.star_rounded,
-                              size: 13,
-                              color: isFilled ? const Color(0xFFFBBF24) : (context.isDark ? Colors.grey.shade700 : const Color(0xFFCBD5E1)),
-                            );
-                          }),
-                          const SizedBox(width: 4),
-                          Text(
-                            reviewsCount > 0 ? rating.toStringAsFixed(1) : 'Baru',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: context.textSecondary,
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
                         ],
                       ),
-                      const Spacer(),
-
-                      // Harga
-                      Text(
-                        'Rp ${_currencyFormat.format(priceValue)}${unit != null ? ' / $unit' : ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: priceColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Tombol Tambah
-                      Container(
-                        width: double.infinity,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: btnGradient),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: btnGradient.last.withValues(alpha: 0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: onAddToCart,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Tambah',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: tagBgColor,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: tagBorderColor, width: 1),
+                                  ),
+                                  child: Text(
+                                    categoryName,
+                                    style: TextStyle(
+                                      color: tagTextColor,
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isOutOfStock
+                                          ? const Color(0xFFEF4444).withValues(alpha: 0.14)
+                                          : tagBgColor.withValues(alpha: 0.7),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      isOutOfStock ? 'Habis' : 'Stok $stok',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: isOutOfStock ? const Color(0xFFEF4444) : tagTextColor,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 5),
+                            Text(
+                              name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12.5,
+                                height: 1.22,
+                                color: context.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                ...List.generate(5, (index) {
+                                  final int starNo = index + 1;
+                                  final bool isFilled = reviewsCount > 0 && starNo <= rating.round();
+                                  return Icon(
+                                    Icons.star_rounded,
+                                    size: 12.5,
+                                    color: isFilled
+                                        ? const Color(0xFFFBBF24)
+                                        : (context.isDark ? Colors.grey.shade700 : const Color(0xFFCBD5E1)),
+                                  );
+                                }),
+                                const SizedBox(width: 4),
+                                Text(
+                                  reviewsCount > 0 ? rating.toStringAsFixed(1) : 'Baru',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: context.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Text(
+                              'Rp ${_currencyFormat.format(priceValue)} / $unitText',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: priceColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            child: SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                clipBehavior: Clip.antiAlias,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: isOutOfStock
+                        ? LinearGradient(colors: [Colors.grey.shade500, Colors.grey.shade600])
+                        : LinearGradient(colors: btnGradient),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: InkWell(
+                    onTap: isOutOfStock ? null : onAddToCart,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isOutOfStock ? Icons.block_rounded : Icons.add_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          isOutOfStock ? 'Stok Habis' : 'Tambah',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

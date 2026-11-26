@@ -65,8 +65,21 @@ class AuthProvider extends ChangeNotifier {
     final user = await ApiService().getUserProfile(token);
     if (user != null) {
       final adminFlag = isAdminFromUserMap(user);
+      _isLoggedIn = true;
       _isAdmin = adminFlag;
+      final srvName = (user['username'] ?? user['name'])?.toString().trim() ?? '';
+      final srvEmail = user['email']?.toString().trim() ?? '';
+      final srvPhone = user['no_telepon']?.toString().trim() ?? '';
+      final srvAddress = user['alamat']?.toString().trim() ?? '';
+      if (srvName.isNotEmpty) _userName = srvName;
+      if (srvEmail.isNotEmpty) _userEmail = srvEmail;
+      if (srvPhone.isNotEmpty) _userPhone = srvPhone;
+      if (srvAddress.isNotEmpty) _userAddress = srvAddress;
+      await prefs.setBool('isLoggedIn', true);
       await prefs.setBool('is_admin', adminFlag);
+      if (_userEmail.isNotEmpty) await prefs.setString('currentEmail', _userEmail);
+      if (_userName.isNotEmpty) await prefs.setString('userName', _userName);
+      await _saveProfileData();
       notifyListeners();
     }
   }
@@ -258,15 +271,28 @@ class AuthProvider extends ChangeNotifier {
   }
 
   //  SET SESSION 
-  Future<void> setSession({required String token, required String email, String? name}) async {
+  Future<void> setSession({
+    required String token,
+    required String email,
+    String? name,
+    String? phone,
+    String? address,
+    bool isAdmin = false,
+  }) async {
     _isLoggedIn = true;
+    _isAdmin = isAdmin;
     _userEmail = email;
-    if (name != null && name.isNotEmpty) _userName = name;
+    _userName = (name != null && name.trim().isNotEmpty) ? name.trim() : email.split('@').first;
+    _userPhone = phone?.trim() ?? '';
+    _userAddress = address?.trim() ?? '';
+    _userPhotoBase64 = '';
     final prefs = await SharedPreferences.getInstance();
     await SecureStorageService.saveToken(token);
     await prefs.setBool('isLoggedIn', true);
+    await prefs.setBool('is_admin', isAdmin);
     await prefs.setString('currentEmail', email);
-    if (name != null && name.isNotEmpty) await prefs.setString('userName', name);
+    await prefs.setString('userName', _userName);
+    await _saveProfileData();
     notifyListeners();
   }
 

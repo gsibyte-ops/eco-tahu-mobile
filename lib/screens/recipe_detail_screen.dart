@@ -366,26 +366,42 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: context.isDark ? AppTheme.emeraldDarkSoft : const Color(0xFFF0FDF4),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: context.isDark
-                                                ? AppTheme.emeraldLight.withValues(alpha: 0.3)
-                                                : const Color(0xFF10B981).withValues(alpha: 0.4),
+                                      Builder(builder: (context) {
+                                        final diff = recipe.difficulty.toLowerCase();
+                                        final Color diffColor = diff == 'sulit'
+                                            ? const Color(0xFFDC2626)
+                                            : (diff == 'sedang'
+                                                ? const Color(0xFFD97706)
+                                                : const Color(0xFF059669));
+                                        final Color diffBg = diff == 'sulit'
+                                            ? (context.isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.35) : const Color(0xFFFEF2F2))
+                                            : (diff == 'sedang'
+                                                ? (context.isDark ? const Color(0xFF78350F).withValues(alpha: 0.35) : const Color(0xFFFFFBEB))
+                                                : (context.isDark ? AppTheme.emeraldDarkSoft : const Color(0xFFF0FDF4)));
+                                        final Color diffText = diff == 'sulit'
+                                            ? (context.isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626))
+                                            : (diff == 'sedang'
+                                                ? (context.isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706))
+                                                : (context.isDark ? AppTheme.emeraldLight : const Color(0xFF059669)));
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: diffBg,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(
+                                              color: diffColor.withValues(alpha: 0.42),
+                                            ),
                                           ),
-                                        ),
-                                        child: Text(
-                                          recipe.difficultyLabel,
-                                          style: TextStyle(
-                                            color: context.isDark ? AppTheme.emeraldLight : const Color(0xFF059669),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
+                                          child: Text(
+                                            recipe.difficultyLabel,
+                                            style: TextStyle(
+                                              color: diffText,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                      ),
+                                        );
+                                      }),
                                       Row(
                                         children: [
                                           Icon(Icons.calendar_today_rounded, size: 12, color: context.textMuted),
@@ -420,7 +436,17 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                                       const SizedBox(width: 8),
                                       _buildMetaTile(context, Icons.people_outline_rounded, 'Porsi', '${recipe.servings} porsi'),
                                       const SizedBox(width: 8),
-                                      _buildMetaTile(context, Icons.local_fire_department_rounded, 'Level', recipe.difficultyLabel),
+                                      _buildMetaTile(
+                                        context,
+                                        Icons.local_fire_department_rounded,
+                                        'Level',
+                                        recipe.difficultyLabel,
+                                        accentColor: recipe.difficulty.toLowerCase() == 'sulit'
+                                            ? const Color(0xFFDC2626)
+                                            : (recipe.difficulty.toLowerCase() == 'sedang'
+                                                ? const Color(0xFFD97706)
+                                                : const Color(0xFF059669)),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -719,18 +745,27 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     );
   }
 
-  Widget _buildMetaTile(BuildContext context, IconData icon, String label, String value) {
+  Widget _buildMetaTile(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value, {
+    Color? accentColor,
+  }) {
+    final Color iconColor = accentColor ?? context.brandGreen;
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
           color: context.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: context.border),
+          border: Border.all(
+            color: accentColor != null ? accentColor.withValues(alpha: 0.35) : context.border,
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 17, color: context.brandGreen),
+            Icon(icon, size: 17, color: iconColor),
             const SizedBox(height: 4),
             Text(
               label,
@@ -742,7 +777,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: context.textPrimary,
+                color: accentColor ?? context.textPrimary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

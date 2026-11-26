@@ -67,7 +67,14 @@ class _LoginScreenState extends State<LoginScreen> {
           : null;
       final isAdmin = AuthProvider.isAdminFromUserMap(userMap);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      await authProvider.setAdminStatus(isAdmin);
+      await authProvider.setSession(
+        token: result['token'].toString(),
+        email: (userMap?['email'] ?? _emailController.text.trim()).toString(),
+        name: (userMap?['username'] ?? userMap?['name'])?.toString(),
+        phone: userMap?['no_telepon']?.toString(),
+        address: userMap?['alamat']?.toString(),
+        isAdmin: isAdmin,
+      );
       if (!mounted) return;
 
       final cartProvider = Provider.of<CartProvider>(context, listen: false);

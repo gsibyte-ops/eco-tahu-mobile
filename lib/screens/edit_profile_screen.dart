@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/app_config.dart';
@@ -140,6 +141,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isNotEmpty && !RegExp(r'^(\+62|62|0)[0-9]{8,14}$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Nomor telepon harus berupa angka valid (contoh: 081234567890).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
@@ -313,6 +325,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       hint: 'Contoh: 081234567890',
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9+]')),
+                        LengthLimitingTextInputFormatter(16),
+                      ],
                     ),
                     const SizedBox(height: 18),
 
@@ -437,6 +453,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     int maxLines = 1,
     VoidCallback? onTap,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
     Widget? suffixIcon,
   }) {
     return TextField(
@@ -446,6 +463,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       maxLines: maxLines,
       onTap: onTap,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: TextStyle(fontSize: 14, color: context.textPrimary),
       decoration: _inputDecoration(hint, icon).copyWith(
         fillColor: isReadOnly 

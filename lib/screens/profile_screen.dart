@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/app_config.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
@@ -23,8 +22,6 @@ import 'faq_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_screen.dart';
 import '../services/secure_storage_service.dart';
-import '../services/local_cache_service.dart';
-import '../services/local_notification_service.dart';
 import '../widgets/shimmer_skeletons.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -100,21 +97,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (confirm == true && _token != null) {
-      // 1. Tembak API Logout Laravel
-      await _apiService.logout(_token!);
-      
-      // 2. Hapus token, cache privat, riwayat push notif, & status role dari HP
-      final prefs = await SharedPreferences.getInstance();
-      await SecureStorageService.deleteToken();
-      await LocalCacheService.clearUserPrivateCache();
-      await LocalNotificationService.instance.clearHistory();
-      LocalNotificationService.instance.stopPolling();
-      await prefs.remove('is_admin');
+      // Logout penuh melalui AuthProvider agar nama/profil tidak nyangkut saat ganti akun
+      await Provider.of<AuthProvider>(context, listen: false).logout();
       if (mounted) {
-        await Provider.of<AuthProvider>(context, listen: false).setAdminStatus(false);
-        if (mounted) {
-          Provider.of<CartProvider>(context, listen: false).setAdminMode(false);
-        }
+        Provider.of<CartProvider>(context, listen: false).setAdminMode(false);
       }
 
       // 3. Pindah ke halaman Login & hapus history navigasi

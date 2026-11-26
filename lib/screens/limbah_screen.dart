@@ -190,7 +190,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
                                       itemCount: _filteredLimbah.length,
                                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                         crossAxisCount: 2,
-                                        childAspectRatio: 0.62,
+                                        mainAxisExtent: 322,
                                         crossAxisSpacing: 14,
                                         mainAxisSpacing: 16,
                                       ),
@@ -267,6 +267,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
     required bool isPopuler,
   }) {
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: context.cardBg,
         borderRadius: BorderRadius.circular(20),
@@ -279,226 +280,240 @@ class _LimbahScreenState extends State<LimbahScreen> {
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => LimbahDetailScreen(limbah: limbah)),
-            );
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Gambar & Badge
-              Expanded(
-                flex: 5,
-                child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LimbahDetailScreen(limbah: limbah)),
+                  );
+                },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
+                    SizedBox(
+                      height: 126,
                       width: double.infinity,
-                      height: double.infinity,
-                      decoration: BoxDecoration(
-                        color: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                      ),
-                      child: EcoCachedImage(
-                        imageUrl: limbah.imageUrl,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(19)),
-                        fallbackIcon: Icons.recycling_rounded,
-                        fallbackColor: context.brandAmber,
-                        fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
-                      ),
-                    ),
-
-                    if (isPopuler)
-                      Positioned(
-                        top: 8,
-                        left: 8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF10B981), Color(0xFF059669)],
-                            ),
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                      child: Stack(
+                        children: [
+                          EcoCachedImage(
+                            imageUrl: limbah.imageUrl,
+                            width: double.infinity,
+                            height: 126,
+                            fit: BoxFit.cover,
+                            fallbackIcon: Icons.recycling_rounded,
+                            fallbackColor: context.brandAmber,
+                            fallbackBgColor: context.isDark ? AppTheme.darkSurface : const Color(0xFFF1F5F9),
                           ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.eco_rounded, size: 11, color: Colors.white),
-                              SizedBox(width: 3),
-                              Text(
-                                'POPULER',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.4,
+                          if (isPopuler)
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF10B981), Color(0xFF059669)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withValues(alpha: 0.4),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.eco_rounded, size: 11, color: Colors.white),
+                                    SizedBox(width: 3),
+                                    Text(
+                                      'POPULER',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.4,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Detail
-              Expanded(
-                flex: 6,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Kategori Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                        decoration: BoxDecoration(
-                          color: context.isDark ? const Color(0xFFD97706).withOpacity(0.15) : const Color(0xFFFFFBEB),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Limbah',
-                          style: TextStyle(
-                            color: Color(0xFFD97706),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-
-                      // Nama Limbah
-                      Text(
-                        limbah.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12.5,
-                          height: 1.25,
-                          color: context.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // Rating
-                      Row(
-                        children: [
-                          ...List.generate(5, (index) {
-                            final int starNo = index + 1;
-                            final bool isFilled = limbah.reviewsCount > 0 && starNo <= limbah.rating.round();
-                            return Icon(
-                              Icons.star_rounded,
-                              size: 13,
-                              color: isFilled ? const Color(0xFFFBBF24) : (context.isDark ? AppTheme.darkBorder : const Color(0xFFCBD5E1)),
-                            );
-                          }),
-                          const SizedBox(width: 4),
-                          Text(
-                            limbah.reviewsCount > 0 ? limbah.rating.toStringAsFixed(1) : 'Baru',
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              color: context.textSecondary,
-                              fontWeight: FontWeight.w600,
                             ),
-                          ),
                         ],
                       ),
-                      const Spacer(),
-
-                      // Harga
-                      Text(
-                        'Rp ${_currencyFormat.format(limbah.priceValue)} / ${limbah.satuan}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFD97706),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13.5,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Tombol Tambah
-                      Container(
-                        width: double.infinity,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFD97706).withOpacity(0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(10),
-                            onTap: () async {
-                              final canProceed = await AuthGuard.requireAuth(
-                                context,
-                                actionMessage: 'menambahkan limbah ke keranjang belanja',
-                              );
-                              if (!canProceed || !context.mounted) return;
-                              Provider.of<CartProvider>(context, listen: false).addToCart(limbah.toProduct());
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('${limbah.name} berhasil ditambahkan!'),
-                                  backgroundColor: const Color(0xFFD97706),
-                                  behavior: SnackBarBehavior.floating,
-                                  duration: const Duration(seconds: 2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              );
-                            },
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Tambah',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: context.isDark ? const Color(0xFFD97706).withValues(alpha: 0.15) : const Color(0xFFFFFBEB),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Limbah',
+                                    style: TextStyle(
+                                      color: Color(0xFFD97706),
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: limbah.stok <= 0
+                                          ? const Color(0xFFEF4444).withValues(alpha: 0.14)
+                                          : (context.isDark ? const Color(0xFFD97706).withValues(alpha: 0.15) : const Color(0xFFFFFBEB)),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      limbah.stok <= 0 ? 'Habis' : 'Stok ${limbah.stok}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: limbah.stok <= 0 ? const Color(0xFFEF4444) : const Color(0xFFD97706),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 5),
+                            Text(
+                              limbah.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12.5,
+                                height: 1.22,
+                                color: context.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                ...List.generate(5, (index) {
+                                  final int starNo = index + 1;
+                                  final bool isFilled = limbah.reviewsCount > 0 && starNo <= limbah.rating.round();
+                                  return Icon(
+                                    Icons.star_rounded,
+                                    size: 12.5,
+                                    color: isFilled ? const Color(0xFFFBBF24) : (context.isDark ? AppTheme.darkBorder : const Color(0xFFCBD5E1)),
+                                  );
+                                }),
+                                const SizedBox(width: 4),
+                                Text(
+                                  limbah.reviewsCount > 0 ? limbah.rating.toStringAsFixed(1) : 'Baru',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: context.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Text(
+                              'Rp ${_currencyFormat.format(limbah.priceValue)} / ${limbah.satuan}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFFD97706),
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            child: SizedBox(
+              width: double.infinity,
+              height: 36,
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                clipBehavior: Clip.antiAlias,
+                child: Ink(
+                  decoration: BoxDecoration(
+                    gradient: limbah.stok <= 0
+                        ? LinearGradient(colors: [Colors.grey.shade500, Colors.grey.shade600])
+                        : const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)]),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: InkWell(
+                    onTap: limbah.stok <= 0
+                        ? null
+                        : () async {
+                            final canProceed = await AuthGuard.requireAuth(
+                              context,
+                              actionMessage: 'menambahkan limbah ke keranjang belanja',
+                            );
+                            if (!canProceed || !context.mounted) return;
+                            Provider.of<CartProvider>(context, listen: false).addToCart(limbah.toProduct());
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${limbah.name} berhasil ditambahkan!'),
+                                backgroundColor: const Color(0xFFD97706),
+                                behavior: SnackBarBehavior.floating,
+                                duration: const Duration(seconds: 2),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            );
+                          },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          limbah.stok <= 0 ? Icons.block_rounded : Icons.add_rounded,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          limbah.stok <= 0 ? 'Stok Habis' : 'Tambah',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
