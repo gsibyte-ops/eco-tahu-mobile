@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import 'limbah_detail_screen.dart';
 import 'cart_screen.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/google_search_dropdown.dart';
 import '../widgets/shimmer_skeletons.dart';
 
 class LimbahScreen extends StatefulWidget {
@@ -18,7 +19,6 @@ class LimbahScreen extends StatefulWidget {
 }
 
 class _LimbahScreenState extends State<LimbahScreen> {
-  String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   final NumberFormat _currencyFormat = NumberFormat('#,###', 'id_ID');
 
@@ -57,12 +57,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
     super.dispose();
   }
 
-  List<Limbah> get _filteredLimbah {
-    if (_searchQuery.isEmpty) return _limbahList;
-    return _limbahList
-        .where((l) => l.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-  }
+  List<Limbah> get _filteredLimbah => _limbahList;
 
   @override
   Widget build(BuildContext context) {
@@ -217,47 +212,29 @@ class _LimbahScreenState extends State<LimbahScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.border, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value),
-        textAlignVertical: TextAlignVertical.center,
-        style: TextStyle(fontSize: 13.5, color: context.textPrimary),
-        decoration: InputDecoration(
-          filled: false,
-          fillColor: Colors.transparent,
-          hintText: 'Cari produk limbah & pakan ampas...',
-          hintStyle: TextStyle(color: context.textSecondary, fontSize: 13),
-          prefixIcon: Icon(Icons.search_rounded, color: context.brandAmber, size: 21),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: context.textSecondary, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                    FocusScope.of(context).unfocus();
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-        ),
-      ),
+    final suggestions = _limbahList
+        .map((l) => SearchSuggestionItem(
+              id: 'limbah_${l.id}',
+              categoryKey: 'Ampas Tahu',
+              title: l.name,
+              subtitle: '${l.price} · ${l.stok > 0 ? 'Stok ${l.stok} ${l.satuan}' : 'Habis'}',
+              badge: 'Ampas Tahu',
+              badgeColor: context.brandAmber,
+              imageUrl: l.imageUrl,
+              fallbackIcon: Icons.recycling_rounded,
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LimbahDetailScreen(limbah: l)),
+              ),
+            ))
+        .toList();
+
+    return GoogleSearchDropdown(
+      controller: _searchController,
+      hintText: 'Cari nama ampas tahu...',
+      accentColor: context.brandAmber,
+      items: suggestions,
+      borderRadius: BorderRadius.circular(16),
     );
   }
 
@@ -534,7 +511,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
           ),
           const SizedBox(height: 14),
           Text(
-            'Produk limbah "$_searchQuery" tidak ditemukan',
+            'Belum ada produk limbah tersedia',
             style: TextStyle(
               color: context.textPrimary,
               fontSize: 15,
@@ -544,7 +521,7 @@ class _LimbahScreenState extends State<LimbahScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Silakan coba kata kunci lain.',
+            'Tarik ke bawah untuk memuat ulang.',
             style: TextStyle(color: context.textSecondary, fontSize: 12),
           ),
         ],

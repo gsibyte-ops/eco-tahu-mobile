@@ -70,6 +70,10 @@ class Order {
   final String pickupMethod;
   final DateTime orderDate;
   String status;
+  int? estimasiMenit;
+  DateTime? estimasiTiba;
+  String? statusKurir;
+  String? statusKurirLabel;
   String? cancelReason;
   String? address;
   String? notes;
@@ -93,6 +97,10 @@ class Order {
     required this.pickupMethod,
     required this.orderDate,
     this.status = 'Pending',
+    this.estimasiMenit,
+    this.estimasiTiba,
+    this.statusKurir,
+    this.statusKurirLabel,
     this.cancelReason,
     this.address,
     this.notes,
@@ -102,6 +110,47 @@ class Order {
     this.longitude,
     this.items = const [],
   });
+
+  static const Map<String, String> courierStatusLabels = {
+    'menyiapkan': 'Admin sedang menyiapkan pesanan',
+    'menuju_lokasi': 'Kurir sedang dalam perjalanan menuju lokasimu',
+    'hampir_sampai': 'Kurir sudah dekat di sekitar lokasimu (±5 menit lagi)',
+    'sudah_di_lokasi': 'Kurir sudah tiba di lokasi tujuan',
+    'siap_diambil': 'Pesanan sudah siap diambil di lokasi EcoTahu',
+  };
+
+  bool get isPickupOrder => pickupMethod.toLowerCase().contains('ambil');
+
+  int get resolvedEtaMinutes {
+    if (estimasiMenit != null && estimasiMenit! > 0) return estimasiMenit!;
+    return isPickupOrder ? 15 : 25;
+  }
+
+  String? get formattedEtaWib {
+    if (estimasiTiba == null) return null;
+    final wib = estimasiTiba!.toUtc().add(const Duration(hours: 7));
+    final hh = wib.hour.toString().padLeft(2, '0');
+    final mm = wib.minute.toString().padLeft(2, '0');
+    return '$hh:$mm WIB';
+  }
+
+  String get resolvedStatusKurir {
+    if (statusKurir != null && statusKurir!.isNotEmpty) return statusKurir!;
+    if (status.toLowerCase() == 'dikirim') {
+      return isPickupOrder ? 'siap_diambil' : 'menuju_lokasi';
+    }
+    return 'menyiapkan';
+  }
+
+  String get resolvedStatusKurirLabel {
+    if (statusKurirLabel != null && statusKurirLabel!.trim().isNotEmpty) {
+      return statusKurirLabel!.trim();
+    }
+    if (statusKurir != null && courierStatusLabels.containsKey(statusKurir)) {
+      return courierStatusLabels[statusKurir!]!;
+    }
+    return courierStatusLabels[resolvedStatusKurir] ?? 'Admin sedang menyiapkan pesanan';
+  }
 
   String get formattedDate => DateFormat('dd MMM yyyy, HH:mm').format(orderDate);
   
@@ -124,6 +173,10 @@ class Order {
         'pickupMethod': pickupMethod,
         'orderDate': orderDate.toIso8601String(),
         'status': status,
+        'estimasiMenit': estimasiMenit,
+        'estimasiTiba': estimasiTiba?.toIso8601String(),
+        'statusKurir': statusKurir,
+        'statusKurirLabel': statusKurirLabel,
         'cancelReason': cancelReason,
         'address': address,
         'notes': notes,
@@ -166,6 +219,10 @@ class Order {
         pickupMethod: json['pickupMethod'],
         orderDate: DateTime.parse(json['orderDate']),
         status: json['status'] ?? 'Pending',
+        estimasiMenit: parseToInt(json['estimasiMenit']) > 0 ? parseToInt(json['estimasiMenit']) : null,
+        estimasiTiba: json['estimasiTiba'] != null ? DateTime.tryParse(json['estimasiTiba'].toString()) : null,
+        statusKurir: json['statusKurir']?.toString(),
+        statusKurirLabel: json['statusKurirLabel']?.toString(),
         cancelReason: json['cancelReason'],
         address: json['address'],
         notes: json['notes'],
@@ -204,6 +261,10 @@ class Order {
           ? DateTime.parse(json['tanggal_order']) 
           : DateTime.now(),
       status: json['order_status'] ?? json['status'] ?? 'Pending',
+      estimasiMenit: parseToInt(json['estimasi_menit']) > 0 ? parseToInt(json['estimasi_menit']) : null,
+      estimasiTiba: json['estimasi_tiba'] != null ? DateTime.tryParse(json['estimasi_tiba'].toString()) : null,
+      statusKurir: json['status_kurir']?.toString(),
+      statusKurirLabel: json['status_kurir_label']?.toString(),
       address: json['alamat_pengiriman'] ?? json['alamat'],
       notes: json['catatan'],
       customerName: json['nama_penerima'] ?? json['nama'] ?? json['user']?['username'],

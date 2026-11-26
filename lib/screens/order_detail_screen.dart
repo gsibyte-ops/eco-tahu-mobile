@@ -781,6 +781,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 final kurir = data?['kurir'];
                 final toko = data?['toko'];
                 final tujuan = data?['tujuan'];
+                final String liveCourierLabel =
+                    data?['status_kurir_label']?.toString().trim().isNotEmpty == true
+                        ? data!['status_kurir_label'].toString()
+                        : widget.order.resolvedStatusKurirLabel;
+                final int? liveEtaMin = int.tryParse(data?['estimasi_menit']?.toString() ?? '');
+                final String? liveEtaWib = data?['estimasi_tiba_wib']?.toString();
 
                 final store = Provider.of<StoreProvider>(context, listen: false);
                 final double tokoLat = (toko?['lat'] as num?)?.toDouble() ?? store.lat;
@@ -962,8 +968,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
-                                          'Kurir sedang menyiapkan pesanan atau menunggu jadwal keberangkatan.',
-                                          style: TextStyle(fontSize: 12, color: context.limbahTagText),
+                                          liveEtaMin != null
+                                              ? '$liveCourierLabel · Estimasi ±$liveEtaMin mnt${liveEtaWib != null ? ' (sekitar $liveEtaWib WIB)' : ''}'
+                                              : liveCourierLabel,
+                                          style: TextStyle(fontSize: 12, color: context.limbahTagText, fontWeight: FontWeight.w600),
                                         ),
                                       ),
                                     ],
@@ -1005,6 +1013,145 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget _buildCourierEtaCard(BuildContext context) {
+    final order = widget.order;
+    final bool isPickup = order.isPickupOrder;
+    final List<Map<String, String>> steps = isPickup
+        ? const [
+            {'key': 'menyiapkan', 'label': 'Disiapkan'},
+            {'key': 'siap_diambil', 'label': 'Siap Diambil'},
+          ]
+        : const [
+            {'key': 'menyiapkan', 'label': 'Disiapkan'},
+            {'key': 'menuju_lokasi', 'label': 'Di Jalan'},
+            {'key': 'hampir_sampai', 'label': 'Hampir Tiba'},
+            {'key': 'sudah_di_lokasi', 'label': 'Sampai'},
+          ];
+    final currentKey = order.resolvedStatusKurir;
+    int activeIdx = steps.indexWhere((s) => s['key'] == currentKey);
+    if (activeIdx < 0) activeIdx = 0;
+
+    final String? etaWib = order.formattedEtaWib;
+    final String etaText = etaWib != null
+        ? 'Estimasi ±${order.resolvedEtaMinutes} mnt · sekitar $etaWib'
+        : 'Estimasi ±${order.resolvedEtaMinutes} menit';
+
+    return _buildGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF059669), Color(0xFF10B981)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  order.status.toLowerCase() == 'dikirim'
+                      ? (isPickup ? Icons.storefront_rounded : Icons.delivery_dining_rounded)
+                      : Icons.schedule_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'STATUS KURIR & PERKIRAAN TIBA',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: context.brandGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      order.resolvedStatusKurirLabel,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: context.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: context.tahuTagBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: context.tahuTagBorder),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.access_time_filled_rounded, size: 16, color: context.brandGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    etaText,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: context.isDark ? AppTheme.emeraldBright : const Color(0xFF065F46),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: List.generate(steps.length, (i) {
+              final done = i <= activeIdx;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(right: i == steps.length - 1 ? 0 : 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 5,
+                        decoration: BoxDecoration(
+                          color: done ? context.brandGreen : context.border,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        steps[i]['label']!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: done ? FontWeight.w700 : FontWeight.w500,
+                          color: done ? context.brandGreen : context.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1168,6 +1315,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
+
+                // ================= 1B. STATUS KURIR & ESTIMASI TIBA =================
+                if (widget.order.status.toLowerCase() == 'diproses' ||
+                    widget.order.status.toLowerCase() == 'dikirim') ...[
+                  _buildCourierEtaCard(context),
+                  const SizedBox(height: 16),
+                ],
 
                 // ================= 2. LACAK KURIR SHORTCUT (IF DIKIRIM) =================
                 if (isDikirim) ...[

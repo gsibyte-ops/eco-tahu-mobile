@@ -10,6 +10,7 @@ import 'limbah_detail_screen.dart';
 import 'cart_screen.dart';
 import '../services/api_service.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/google_search_dropdown.dart';
 import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 import '../services/secure_storage_service.dart';
@@ -25,8 +26,7 @@ class ProductListingScreen extends StatefulWidget {
 class _ProductListingScreenState extends State<ProductListingScreen> {
   late String _selectedTab;
   String? _lastSyncedNavFilter;
-  String _searchQuery = '';
-  
+
   final TextEditingController _searchController = TextEditingController();
   final NumberFormat _currencyFormat = NumberFormat('#,###', 'id_ID');
 
@@ -58,7 +58,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     } else if (navFilter != _lastSyncedNavFilter) {
       _lastSyncedNavFilter = navFilter;
       _selectedTab = navFilter;
-      _searchQuery = '';
       _searchController.clear();
     }
   }
@@ -93,19 +92,9 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     super.dispose();
   }
 
-  List<Product> get _filteredProducts {
-    if (_searchQuery.isEmpty) return _productsList;
-    return _productsList
-        .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-  }
+  List<Product> get _filteredProducts => _productsList;
 
-  List<Limbah> get _filteredLimbah {
-    if (_searchQuery.isEmpty) return _limbahList;
-    return _limbahList
-        .where((l) => l.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
-  }
+  List<Limbah> get _filteredLimbah => _limbahList;
 
   @override
   Widget build(BuildContext context) {
@@ -254,51 +243,46 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
     );
   }
 
-  // ================= SEARCH BAR =================
+  // ================= SEARCH BAR (GOOGLE-STYLE DROPDOWN BY NAMA) =================
   Widget _buildSearchBar() {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.border, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: context.isDark
-                ? Colors.black.withValues(alpha: 0.25)
-                : const Color(0xFF0F172A).withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value),
-        textAlignVertical: TextAlignVertical.center,
-        style: TextStyle(fontSize: 13.5, color: context.textPrimary),
-        decoration: InputDecoration(
-          filled: false,
-          fillColor: Colors.transparent,
-          hintText: 'Cari tahu organik & ampas...',
-          hintStyle: TextStyle(color: context.textSecondary, fontSize: 13),
-          prefixIcon: Icon(Icons.search_rounded, color: context.brandGreen, size: 21),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: context.textSecondary, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                    FocusScope.of(context).unfocus();
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-        ),
-      ),
+    final suggestions = <SearchSuggestionItem>[
+      ..._productsList.map((p) => SearchSuggestionItem(
+            id: 'tahu_${p.id}',
+            categoryKey: 'Produk Tahu',
+            title: p.name,
+            subtitle: '${p.price} · ${p.stok > 0 ? 'Stok ${p.stok} ${p.satuan}' : 'Habis'}',
+            badge: 'Produk Tahu',
+            badgeColor: context.brandGreen,
+            imageUrl: p.imageUrl,
+            fallbackIcon: Icons.eco_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProductDetailScreen(product: p)),
+            ),
+          )),
+      ..._limbahList.map((l) => SearchSuggestionItem(
+            id: 'limbah_${l.id}',
+            categoryKey: 'Produk Limbah',
+            title: l.name,
+            subtitle: '${l.price} · ${l.stok > 0 ? 'Stok ${l.stok} ${l.satuan}' : 'Habis'}',
+            badge: 'Ampas Tahu',
+            badgeColor: context.brandAmber,
+            imageUrl: l.imageUrl,
+            fallbackIcon: Icons.recycling_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LimbahDetailScreen(limbah: l)),
+            ),
+          )),
+    ];
+
+    return GoogleSearchDropdown(
+      controller: _searchController,
+      hintText: 'Cari nama tahu organik & ampas...',
+      accentColor: context.brandGreen,
+      items: suggestions,
+      filterTabs: const ['Semua', 'Produk Tahu', 'Produk Limbah'],
+      borderRadius: BorderRadius.circular(16),
     );
   }
 
@@ -312,8 +296,6 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
       onTap: () {
         setState(() {
           _selectedTab = title;
-          _searchQuery = '';
-          _searchController.clear();
         });
         _lastSyncedNavFilter = title;
         context.read<NavigationProvider>().setProductFilter(title);
@@ -447,7 +429,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
             ),
             const SizedBox(height: 14),
             Text(
-              'Produk "$_searchQuery" tidak ditemukan',
+              'Belum ada produk tersedia',
               style: TextStyle(
                 color: context.textPrimary,
                 fontSize: 15,
@@ -457,7 +439,7 @@ class _ProductListingScreenState extends State<ProductListingScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Coba cari dengan kata kunci lain.',
+              'Tarik ke bawah untuk memuat ulang.',
               style: TextStyle(color: context.textSecondary, fontSize: 12),
             ),
           ],

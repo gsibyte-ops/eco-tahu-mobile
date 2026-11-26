@@ -622,6 +622,68 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
                     ),
                   ],
                 ),
+                if (statusLower == 'diproses' || statusLower == 'dikirim') ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: statusLower == 'dikirim'
+                          ? (context.isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.28) : const Color(0xFFEFF6FF))
+                          : context.tahuTagBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: statusLower == 'dikirim'
+                            ? (context.isDark ? const Color(0xFF60A5FA).withValues(alpha: 0.35) : const Color(0xFFBFDBFE))
+                            : context.tahuTagBorder,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          statusLower == 'dikirim'
+                              ? (order.isPickupOrder ? Icons.store_mall_directory_rounded : Icons.delivery_dining_rounded)
+                              : Icons.inventory_2_rounded,
+                          size: 17,
+                          color: statusLower == 'dikirim'
+                              ? (context.isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB))
+                              : context.brandGreen,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                order.resolvedStatusKurirLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                order.formattedEtaWib != null
+                                    ? 'Estimasi tiba ±${order.resolvedEtaMinutes} mnt (sekitar ${order.formattedEtaWib})'
+                                    : 'Estimasi tiba ±${order.resolvedEtaMinutes} menit',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: statusLower == 'dikirim'
+                                      ? (context.isDark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8))
+                                      : context.brandGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 Divider(height: 22, color: context.border),
 
                 // Action buttons

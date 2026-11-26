@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/article.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/google_search_dropdown.dart';
 import '../widgets/shimmer_skeletons.dart';
 import 'article_detail_screen.dart';
 import '../services/secure_storage_service.dart';
@@ -16,7 +17,6 @@ class EducationScreen extends StatefulWidget {
 
 class _EducationScreenState extends State<EducationScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   bool _isLoading = true;
   List<Article> _articles = [];
@@ -54,15 +54,7 @@ class _EducationScreenState extends State<EducationScreen> {
     super.dispose();
   }
 
-  List<Article> get _filteredArticles {
-    if (_searchQuery.isEmpty) {
-      return _articles;
-    }
-    return _articles.where((article) {
-      return article.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          article.category.toLowerCase().contains(_searchQuery.toLowerCase());
-    }).toList();
-  }
+  List<Article> get _filteredArticles => _articles;
 
   String formatDate(DateTime date) {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -150,52 +142,29 @@ class _EducationScreenState extends State<EducationScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Glass Search Capsule
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: context.cardBg,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: context.border),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: context.isDark ? 0.2 : 0.03),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) => setState(() => _searchQuery = value),
-                            style: TextStyle(fontSize: 14, color: context.textPrimary),
-                            decoration: InputDecoration(
-                              filled: false,
-                              fillColor: Colors.transparent,
-                              hintText: 'Cari topik edukasi, resep, atau tips...',
-                              hintStyle: TextStyle(color: context.textSecondary, fontSize: 13),
-                              prefixIcon: Icon(Icons.search_rounded, color: context.brandGreen, size: 22),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(Icons.cancel_rounded, color: context.textMuted, size: 20),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _searchQuery = '');
-                                        FocusScope.of(context).unfocus();
-                                      },
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            ),
-                          ),
-                        ),
-                      ),
+                    // Google-style Search Dropdown (by judul artikel, list edukasi tetap utuh)
+                    GoogleSearchDropdown(
+                      controller: _searchController,
+                      hintText: 'Cari judul artikel edukasi...',
+                      accentColor: context.brandGreen,
+                      items: _articles
+                          .map((a) => SearchSuggestionItem(
+                                id: 'edukasi_${a.id}',
+                                categoryKey: 'Edukasi',
+                                title: a.title,
+                                subtitle: '${a.category} · ${formatDate(a.date)}',
+                                badge: 'Edukasi',
+                                badgeColor: context.brandGreen,
+                                imageUrl: a.displayImageUrl,
+                                fallbackIcon: a.mediaType == 'video'
+                                    ? Icons.play_circle_filled_rounded
+                                    : Icons.article_rounded,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => ArticleDetailScreen(article: a)),
+                                ),
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 24),
 

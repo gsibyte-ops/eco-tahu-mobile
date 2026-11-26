@@ -5,16 +5,19 @@ import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../models/limbah.dart';
 import '../models/article.dart';
+import '../models/recipe.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/navigation_provider.dart';
 import 'product_detail_screen.dart';
 import 'limbah_detail_screen.dart';
 import 'article_detail_screen.dart';
+import 'recipe_detail_screen.dart';
 import 'cart_screen.dart';
 import '../services/api_service.dart';
 import 'notification_screen.dart';
 import '../widgets/auth_guard.dart';
+import '../widgets/google_search_dropdown.dart';
 import '../widgets/shimmer_skeletons.dart';
 import '../theme/app_theme.dart';
 import '../providers/theme_provider.dart';
@@ -29,7 +32,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
 
   final ApiService _apiService = ApiService();
   final NumberFormat _currencyFormat = NumberFormat('#,###', 'id_ID');
@@ -37,6 +39,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Product> _productsList = [];
   List<Limbah> _limbahList = [];
   List<Article> _articlesList = [];
+  List<Recipe> _recipesList = [];
   
   bool _isLoading = true;
   String? _errorMessage;
@@ -63,12 +66,17 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         articles = await _apiService.getArticles(token);
       } catch (_) {}
+      List<Recipe> recipes = [];
+      try {
+        recipes = await _apiService.getRecipes(token);
+      } catch (_) {}
       
       if (mounted) {
         setState(() {
           _productsList = products;
           _limbahList = limbah;
           _articlesList = articles;
+          _recipesList = recipes;
           _unreadNotificationCount = unreadNotif;
           _isLoading = false;
         });
@@ -90,11 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Product> get _filteredProducts {
-    if (_searchQuery.isNotEmpty) {
-      return _productsList
-          .where((p) => p.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-    }
     final ranked = List<Product>.from(_productsList)
       ..sort((a, b) {
         final revCmp = b.reviewsCount.compareTo(a.reviewsCount);
@@ -107,11 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Limbah> get _filteredLimbah {
-    if (_searchQuery.isNotEmpty) {
-      return _limbahList
-          .where((l) => l.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-          .toList();
-    }
     final ranked = List<Limbah>.from(_limbahList)
       ..sort((a, b) {
         final revCmp = b.reviewsCount.compareTo(a.reviewsCount);
@@ -185,32 +183,28 @@ class _HomeScreenState extends State<HomeScreen> {
                               _buildHeader(context),
                               const SizedBox(height: 18),
 
-                              // 2. GLASS SEARCH BAR
-                              _buildSearchBar(),
+                              // 2. GOOGLE-STYLE SEARCH DROPDOWN (BY NAMA SAJA, HALAMAN TETAP UTUH)
+                              _buildSearchBar(context),
                               const SizedBox(height: 22),
 
-                              // 3. HERO BANNER & KATEGORI (Hanya saat tidak search)
-                              if (_searchQuery.isEmpty) ...[
-                                _buildHeroBanner(),
-                                const SizedBox(height: 26),
+                              // 3. HERO BANNER & KATEGORI
+                              _buildHeroBanner(),
+                              const SizedBox(height: 26),
 
-                                _buildKategoriSection(context),
-                                const SizedBox(height: 18),
+                              _buildKategoriSection(context),
+                              const SizedBox(height: 18),
 
-                                _buildResepQuickBanner(context),
-                                const SizedBox(height: 28),
-                              ],
+                              _buildResepQuickBanner(context),
+                              const SizedBox(height: 28),
 
                               // 4. LIST PRODUK TAHU (GRID 2 KOLOM GLASS CARDS)
                               if (_filteredProducts.isNotEmpty) ...[
                                 _buildSectionHeader(
-                                  title: _searchQuery.isEmpty ? 'Produk Pilihan' : 'Hasil Pencarian Tahu',
-                                  subtitle: _searchQuery.isEmpty ? 'Tahu organik premium fresh dari pabrik kami.' : null,
-                                  onViewAll: _searchQuery.isEmpty
-                                      ? () => context
-                                          .read<NavigationProvider>()
-                                          .openProductsTab(filter: 'Produk Tahu')
-                                      : null,
+                                  title: 'Produk Pilihan',
+                                  subtitle: 'Tahu organik premium fresh dari pabrik kami.',
+                                  onViewAll: () => context
+                                      .read<NavigationProvider>()
+                                      .openProductsTab(filter: 'Produk Tahu'),
                                 ),
                                 const SizedBox(height: 14),
                                 _buildProductGrid(context, _filteredProducts),
@@ -220,34 +214,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               // 5. LIST PRODUK LIMBAH (GRID 2 KOLOM GLASS CARDS)
                               if (_filteredLimbah.isNotEmpty) ...[
                                 _buildSectionHeader(
-                                  title: _searchQuery.isEmpty ? 'Ampas Tahu Bernilai' : 'Hasil Pencarian Limbah',
-                                  subtitle: _searchQuery.isEmpty ? 'Inovasi olahan limbah zero-waste berkualitas tinggi.' : null,
-                                  onViewAll: _searchQuery.isEmpty
-                                      ? () => context
-                                          .read<NavigationProvider>()
-                                          .openProductsTab(filter: 'Produk Limbah')
-                                      : null,
+                                  title: 'Ampas Tahu Bernilai',
+                                  subtitle: 'Inovasi olahan limbah zero-waste berkualitas tinggi.',
+                                  onViewAll: () => context
+                                      .read<NavigationProvider>()
+                                      .openProductsTab(filter: 'Produk Limbah'),
                                 ),
                                 const SizedBox(height: 14),
                                 _buildLimbahGrid(context, _filteredLimbah),
                                 const SizedBox(height: 30),
                               ],
 
-                              // 6. TAMPILAN KOSONG
-                              if (_filteredProducts.isEmpty && _filteredLimbah.isEmpty)
-                                _buildEmptySearchState(),
-
-                              // 7. EDUKASI LINGKUNGAN (Hanya saat tidak search)
-                              if (_searchQuery.isEmpty) ...[
-                                _buildSectionHeader(
-                                  title: 'Edukasi Lingkungan',
-                                  subtitle: 'Artikel & tips gaya hidup berkelanjutan EcoTahu.',
-                                  onViewAll: () => context.read<NavigationProvider>().setTab(3),
-                                ),
-                                const SizedBox(height: 14),
-                                _buildEdukasiHomeSection(context),
-                                const SizedBox(height: 20),
-                              ],
+                              // 6. EDUKASI LINGKUNGAN
+                              _buildSectionHeader(
+                                title: 'Edukasi Lingkungan',
+                                subtitle: 'Artikel & tips gaya hidup berkelanjutan EcoTahu.',
+                                onViewAll: () => context.read<NavigationProvider>().setTab(3),
+                              ),
+                              const SizedBox(height: 14),
+                              _buildEdukasiHomeSection(context),
+                              const SizedBox(height: 20),
 
                               // Bottom Padding agar tidak tertutup floating bottom nav bar
                               const SizedBox(height: 95),
@@ -265,92 +251,56 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildHeader(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        final String displayName = auth.isLoggedIn && auth.userName.isNotEmpty
-            ? auth.userName.split(' ').first
-            : 'Sobat Tahu';
-
+        final bool isDark = context.isDark;
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Row(
-                children: [
-                  // Logo Icon Capsule
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF10B981), Color(0xFF059669)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF059669).withValues(alpha: 0.35),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.eco_rounded, color: Colors.white, size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Halo, $displayName!',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                            color: context.textPrimary,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Sehat untukmu, ramah untuk bumi',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: context.textSecondary,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Image.asset(
+                  isDark ? 'assets/images/logo_dark.png' : 'assets/images/Logo_EcoTahu.png',
+                  height: 36,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
 
-            // Top Action Buttons (Tema + Notifikasi + Keranjang)
+            // Top Action Buttons (Tema + Keranjang + Notifikasi)
             Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Theme Toggle Button
                 Consumer<ThemeProvider>(
                   builder: (context, themeProvider, _) {
-                    final isDark = themeProvider.isDark(context);
+                    final darkNow = themeProvider.isDark(context);
                     return _buildGlassIconButton(
-                      icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
-                      iconColor: isDark ? const Color(0xFFFBBF24) : context.textPrimary,
+                      icon: darkNow ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                      iconColor: darkNow ? const Color(0xFFFBBF24) : context.textPrimary,
                       badgeCount: 0,
                       onTap: () => themeProvider.toggleTheme(context),
                     );
                   },
                 ),
+                if (!auth.isAdmin) ...[
+                  const SizedBox(width: 8),
+                  Consumer<CartProvider>(
+                    builder: (context, cart, _) {
+                      final totalItems = cart.items.fold(0, (sum, item) => sum + item.quantity);
+                      return _buildGlassIconButton(
+                        icon: Icons.shopping_bag_outlined,
+                        badgeCount: totalItems,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const CartScreen()),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(width: 8),
-
-                // Notifikasi Button
                 _buildGlassIconButton(
                   icon: Icons.notifications_none_rounded,
                   badgeCount: _unreadNotificationCount,
@@ -360,24 +310,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(builder: (context) => const NotificationScreen()),
                     );
                     _loadData();
-                  },
-                ),
-                const SizedBox(width: 8),
-
-                // Keranjang Button
-                Consumer<CartProvider>(
-                  builder: (context, cart, _) {
-                    final totalItems = cart.items.fold(0, (sum, item) => sum + item.quantity);
-                    return _buildGlassIconButton(
-                      icon: Icons.shopping_bag_outlined,
-                      badgeCount: totalItems,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const CartScreen()),
-                        );
-                      },
-                    );
                   },
                 ),
               ],
@@ -457,51 +389,73 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ================= WIDGET: SEARCH BAR =================
-  Widget _buildSearchBar() {
-    return Container(
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: context.border, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: context.isDark
-                ? Colors.black.withValues(alpha: 0.25)
-                : const Color(0xFF0F172A).withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _searchController,
-        onChanged: (value) => setState(() => _searchQuery = value),
-        textAlignVertical: TextAlignVertical.center,
-        style: TextStyle(fontSize: 13.5, color: context.textPrimary),
-        decoration: InputDecoration(
-          filled: false,
-          fillColor: Colors.transparent,
-          hintText: 'Cari tahu organik, ampas kedelai...',
-          hintStyle: TextStyle(color: context.textSecondary, fontSize: 13),
-          prefixIcon: Icon(Icons.search_rounded, color: context.brandGreen, size: 22),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: context.textMuted, size: 18),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                    FocusScope.of(context).unfocus();
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-        ),
-      ),
+  // ================= WIDGET: GOOGLE-STYLE SEARCH DROPDOWN (BY NAMA SAJA) =================
+  Widget _buildSearchBar(BuildContext context) {
+    final suggestions = <SearchSuggestionItem>[
+      ..._productsList.map((p) => SearchSuggestionItem(
+            id: 'tahu_${p.id}',
+            categoryKey: 'Produk Tahu',
+            title: p.name,
+            subtitle: '${p.price} · ${p.stok > 0 ? 'Stok ${p.stok} ${p.satuan}' : 'Habis'}',
+            badge: 'Produk Tahu',
+            badgeColor: context.brandGreen,
+            imageUrl: p.imageUrl,
+            fallbackIcon: Icons.eco_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProductDetailScreen(product: p)),
+            ),
+          )),
+      ..._limbahList.map((l) => SearchSuggestionItem(
+            id: 'limbah_${l.id}',
+            categoryKey: 'Ampas Tahu',
+            title: l.name,
+            subtitle: '${l.price} · ${l.stok > 0 ? 'Stok ${l.stok} ${l.satuan}' : 'Habis'}',
+            badge: 'Ampas Tahu',
+            badgeColor: context.brandAmber,
+            imageUrl: l.imageUrl,
+            fallbackIcon: Icons.recycling_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => LimbahDetailScreen(limbah: l)),
+            ),
+          )),
+      ..._recipesList.map((r) => SearchSuggestionItem(
+            id: 'resep_${r.id}',
+            categoryKey: 'Resep',
+            title: r.title,
+            subtitle: '${r.durationMinutes} mnt · ${r.difficultyLabel}',
+            badge: 'Resep',
+            badgeColor: const Color(0xFF059669),
+            imageUrl: r.displayImageUrl,
+            fallbackIcon: Icons.restaurant_menu_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => RecipeDetailScreen(recipe: r)),
+            ),
+          )),
+      ..._articlesList.map((a) => SearchSuggestionItem(
+            id: 'edukasi_${a.id}',
+            categoryKey: 'Edukasi',
+            title: a.title,
+            subtitle: a.category,
+            badge: 'Edukasi',
+            badgeColor: const Color(0xFF0284C7),
+            imageUrl: a.displayImageUrl,
+            fallbackIcon: Icons.article_rounded,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ArticleDetailScreen(article: a)),
+            ),
+          )),
+    ];
+
+    return GoogleSearchDropdown(
+      controller: _searchController,
+      hintText: 'Cari nama tahu, ampas, resep, atau edukasi...',
+      accentColor: context.brandGreen,
+      items: suggestions,
+      filterTabs: const ['Semua', 'Produk Tahu', 'Ampas Tahu', 'Resep', 'Edukasi'],
     );
   }
 
@@ -1762,44 +1716,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // ================= WIDGET: EMPTY SEARCH STATE =================
-  Widget _buildEmptySearchState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: context.surfaceElevated,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.search_off_rounded, size: 40, color: context.textMuted),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Produk "$_searchQuery" tidak ditemukan',
-              style: TextStyle(
-                color: context.textPrimary,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Coba gunakan kata kunci lain seperti "tahu" atau "ampas".',
-              style: TextStyle(color: context.textSecondary, fontSize: 12),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

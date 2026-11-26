@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../services/secure_storage_service.dart';
+import '../widgets/password_rules_checklist.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -42,9 +43,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (!PasswordRulesHelper.isValid(newPassword)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password baru minimal 8 karakter!'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Password baru minimal 8 karakter, ada huruf besar (A-Z) dan angka (0-9).'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -138,8 +142,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 controller: _newPasswordController,
                 obscure: _obscureNew,
                 onToggle: () => setState(() => _obscureNew = !_obscureNew),
-                hint: 'Minimal 8 karakter',
+                hint: 'Buat password baru yang kuat',
               ),
+              const SizedBox(height: 10),
+              PasswordRulesChecklist(password: _newPasswordController.text),
               const SizedBox(height: 18),
 
               _buildLabel('Konfirmasi Password Baru *'),
@@ -150,12 +156,21 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
                 hint: 'Ulangi password baru',
               ),
+              PasswordMatchIndicator(
+                password: _newPasswordController.text,
+                confirmPassword: _confirmPasswordController.text,
+              ),
               const SizedBox(height: 30),
 
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleUpdatePassword,
+                  onPressed: (_isLoading ||
+                          _currentPasswordController.text.isEmpty ||
+                          !PasswordRulesHelper.isValid(_newPasswordController.text) ||
+                          _newPasswordController.text != _confirmPasswordController.text)
+                      ? null
+                      : _handleUpdatePassword,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryGreen,
                     foregroundColor: Colors.white,
@@ -192,6 +207,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      onChanged: (_) => setState(() {}),
       style: TextStyle(color: context.textPrimary, fontSize: 13.5),
       decoration: InputDecoration(
         hintText: hint,

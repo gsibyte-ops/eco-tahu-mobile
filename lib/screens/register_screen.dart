@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../providers/store_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/google_icon.dart';
+import '../widgets/password_rules_checklist.dart';
 import 'login_screen.dart'; 
 import 'main_screen.dart';
 import 'terms_screen.dart';
@@ -48,17 +49,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _handleRegister() async {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password dan Konfirmasi Password tidak sama!'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+  bool get _canSubmit =>
+      _nameController.text.trim().isNotEmpty &&
+      _emailController.text.trim().contains('@') &&
+      _phoneController.text.trim().isNotEmpty &&
+      PasswordRulesHelper.isValid(_passwordController.text) &&
+      _passwordController.text == _confirmPasswordController.text &&
+      _isTermsAccepted;
 
+  Future<void> _handleRegister() async {
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _phoneController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Semua kolom wajib diisi!'), backgroundColor: Colors.red),
@@ -70,6 +69,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Nomor telepon harus berupa angka valid (contoh: 081234567890).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!PasswordRulesHelper.isValid(_passwordController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kata sandi minimal 8 karakter, ada huruf besar (A-Z) dan angka (0-9).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_passwordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password dan Konfirmasi Password tidak sama!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -539,6 +558,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               LengthLimitingTextInputFormatter(16),
                             ],
                           ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5, left: 2),
+                            child: Text(
+                              'Untuk koordinasi pengiriman & info status pesanan.',
+                              style: TextStyle(color: context.textMuted, fontSize: 11),
+                            ),
+                          ),
                           const SizedBox(height: 16),
 
                           // FORM: PASSWORD
@@ -546,12 +572,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           const SizedBox(height: 7),
                           _buildTextField(
                             controller: _passwordController,
-                            hint: 'Minimal 8 karakter',
+                            hint: 'Buat kata sandi yang kuat',
                             icon: Icons.lock_outline_rounded,
                             isPassword: true,
                             obscureText: _obscurePassword,
                             onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
                           ),
+                          const SizedBox(height: 10),
+                          PasswordRulesChecklist(password: _passwordController.text),
                           const SizedBox(height: 16),
 
                           // FORM: KONFIRMASI PASSWORD
@@ -564,6 +592,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             isPassword: true,
                             obscureText: _obscureConfirm,
                             onTogglePassword: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                          ),
+                          PasswordMatchIndicator(
+                            password: _passwordController.text,
+                            confirmPassword: _confirmPasswordController.text,
                           ),
                           const SizedBox(height: 14),
 
@@ -625,30 +657,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 22),
 
-                          // TOMBOL SUBMIT DAFTAR (GRADIENT GLOW)
+                          // TOMBOL SUBMIT DAFTAR (GATED SMART CTA)
                           Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF10B981), Color(0xFF047857)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
+                              gradient: (!_isLoading && _canSubmit)
+                                  ? const LinearGradient(
+                                      colors: [Color(0xFF10B981), Color(0xFF047857)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    )
+                                  : null,
+                              color: (!_isLoading && _canSubmit)
+                                  ? null
+                                  : (context.isDark ? AppTheme.darkSurfaceElevated : Colors.grey.shade300),
                               borderRadius: BorderRadius.circular(14),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF059669).withOpacity(0.38),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
+                              boxShadow: (!_isLoading && _canSubmit)
+                                  ? [
+                                      BoxShadow(
+                                        color: const Color(0xFF059669).withOpacity(0.38),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 6),
+                                      ),
+                                    ]
+                                  : null,
                             ),
                             child: ElevatedButton(
-                              onPressed: (_isLoading || !_isTermsAccepted) ? null : _handleRegister,
+                              onPressed: (_isLoading || !_canSubmit) ? null : _handleRegister,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                disabledBackgroundColor: context.isDark ? AppTheme.darkSurfaceElevated : Colors.grey.shade300,
+                                disabledBackgroundColor: Colors.transparent,
+                                disabledForegroundColor: context.textMuted,
                                 shadowColor: Colors.transparent,
                                 padding: const EdgeInsets.symmetric(vertical: 15),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -772,6 +812,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       obscureText: obscureText,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
+      onChanged: (_) => setState(() {}),
       style: TextStyle(fontSize: 14, color: context.textPrimary),
       decoration: InputDecoration(
         hintText: hint,

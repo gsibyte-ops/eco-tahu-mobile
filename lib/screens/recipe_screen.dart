@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/google_search_dropdown.dart';
 import '../widgets/shimmer_skeletons.dart';
 import 'recipe_detail_screen.dart';
 import '../services/secure_storage_service.dart';
@@ -16,7 +17,6 @@ class RecipeScreen extends StatefulWidget {
 
 class _RecipeScreenState extends State<RecipeScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
   String _selectedDifficulty = 'semua';
 
   bool _isLoading = true;
@@ -58,14 +58,8 @@ class _RecipeScreenState extends State<RecipeScreen> {
 
   List<Recipe> get _filteredRecipes {
     return _recipes.where((recipe) {
-      final matchesDiff = _selectedDifficulty == 'semua' ||
+      return _selectedDifficulty == 'semua' ||
           recipe.difficulty.toLowerCase() == _selectedDifficulty;
-      if (!matchesDiff) return false;
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      return recipe.title.toLowerCase().contains(q) ||
-          recipe.description.toLowerCase().contains(q) ||
-          recipe.ingredients.toLowerCase().contains(q);
     }).toList();
   }
 
@@ -181,54 +175,27 @@ class _RecipeScreenState extends State<RecipeScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Glass Search Capsule
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(
-                            color: context.cardBg,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: context.border),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: context.isDark ? 0.25 : 0.03),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (value) => setState(() => _searchQuery = value),
-                            textAlignVertical: TextAlignVertical.center,
-                            style: TextStyle(fontSize: 14, color: context.textPrimary),
-                            decoration: InputDecoration(
-                              filled: false,
-                              fillColor: Colors.transparent,
-                              hintText: 'Cari nama resep atau bahan masakan...',
-                              hintStyle: TextStyle(color: context.textSecondary, fontSize: 13),
-                              prefixIcon: Icon(Icons.search_rounded, color: context.brandGreen, size: 22),
-                              suffixIcon: _searchQuery.isNotEmpty
-                                  ? IconButton(
-                                      icon: Icon(Icons.cancel_rounded, color: context.textMuted, size: 20),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _searchQuery = '');
-                                        FocusScope.of(context).unfocus();
-                                      },
-                                    )
-                                  : null,
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                            ),
-                          ),
-                        ),
-                      ),
+                    // Google-style Search Dropdown (by nama resep, daftar resep tetap tampil)
+                    GoogleSearchDropdown(
+                      controller: _searchController,
+                      hintText: 'Cari nama resep olahan tahu...',
+                      accentColor: context.brandGreen,
+                      items: _recipes
+                          .map((r) => SearchSuggestionItem(
+                                id: 'resep_${r.id}',
+                                categoryKey: 'Resep',
+                                title: r.title,
+                                subtitle: '${r.durationMinutes} mnt · ${r.difficultyLabel}',
+                                badge: r.difficultyLabel,
+                                badgeColor: _difficultyColor(r.difficulty),
+                                imageUrl: r.displayImageUrl,
+                                fallbackIcon: Icons.restaurant_menu_rounded,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => RecipeDetailScreen(recipe: r)),
+                                ),
+                              ))
+                          .toList(),
                     ),
                     const SizedBox(height: 14),
 
