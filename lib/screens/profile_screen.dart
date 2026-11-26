@@ -22,6 +22,7 @@ import 'faq_screen.dart';
 import 'terms_screen.dart';
 import 'privacy_screen.dart';
 import '../services/secure_storage_service.dart';
+import '../services/local_cache_service.dart';
 import '../widgets/shimmer_skeletons.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -62,11 +63,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
+    // 1. Tampilkan profil dari cache lokal / AuthProvider secara instan agar tidak blank saat offline
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final cachedProfile = await LocalCacheService.readJson(LocalCacheService.keyUserProfile);
+    if (mounted) {
+      Map<String, dynamic>? initialUser;
+      if (cachedProfile is Map) {
+        initialUser = Map<String, dynamic>.from(cachedProfile);
+      } else if (auth.userName.isNotEmpty || auth.userEmail.isNotEmpty) {
+        initialUser = {
+          'username': auth.userName,
+          'name': auth.userName,
+          'email': auth.userEmail,
+          'no_telepon': auth.userPhone,
+          'alamat': auth.userAddress,
+          'role': auth.isAdmin ? 'admin' : 'user',
+        };
+      }
+      if (initialUser != null) {
+        setState(() {
+          _token = token;
+          _userData = initialUser;
+          _isLoading = false;
+        });
+      }
+    }
+
+    // 2. Refresh live dari server (jika offline tetap pakai cache lokal)
     final user = await _apiService.getUserProfile(token);
     if (!mounted) return;
 
-    final isAdmin = AuthProvider.isAdminFromUserMap(user);
-    await Provider.of<AuthProvider>(context, listen: false).setAdminStatus(isAdmin);
+    final effectiveUser = user ?? _userData;
+    final isAdmin = effectiveUser != null
+        ? AuthProvider.isAdminFromUserMap(effectiveUser)
+        : auth.isAdmin;
+    await auth.setAdminStatus(isAdmin);
     if (!mounted) return;
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     cartProvider.setAdminMode(isAdmin);
@@ -76,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     setState(() {
       _token = token;
-      _userData = user;
+      _userData = effectiveUser;
       _isLoading = false;
     });
   }

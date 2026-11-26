@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../config/app_config.dart';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/media_preview_widgets.dart';
 import '../widgets/offline_banner.dart';
@@ -46,19 +47,33 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
       return;
     }
 
+    // 1. Tampilkan cache lokal secara instan agar langsung terbaca saat offline
+    final cached = await LocalCacheService.readJson(LocalCacheService.keyAdminOverview);
+    if (cached is Map && mounted) {
+      setState(() {
+        _data = Map<String, dynamic>.from(cached);
+        _errorMessage = null;
+        _isLoading = false;
+      });
+    }
+
+    // 2. Refresh live dari server
     final res = await _apiService.getAdminOverview(token);
     if (!mounted) return;
 
     if (res['success'] == true && res['data'] is Map<String, dynamic>) {
       setState(() {
         _data = Map<String, dynamic>.from(res['data']);
+        _errorMessage = null;
         _isLoading = false;
       });
-    } else {
+    } else if (_data.isEmpty) {
       setState(() {
         _errorMessage = res['message']?.toString() ?? 'Gagal memuat overview admin.';
         _isLoading = false;
       });
+    } else {
+      setState(() => _isLoading = false);
     }
   }
 

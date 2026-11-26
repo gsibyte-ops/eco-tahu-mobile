@@ -27,18 +27,20 @@ class OrderItem {
       return double.tryParse(val.toString())?.toInt() ?? 0;
     }
 
-    String rawType = (json['item_type'] ?? '').toString().toLowerCase();
+    String rawType = (json['item_type'] ?? json['itemType'] ?? '').toString().toLowerCase();
     String cleanType = rawType.contains('limbah') ? 'limbah' : 'tahu';
+    final int unitPrice = parseToInt(json['harga_satuan'] ?? json['harga'] ?? json['price']);
+    final int itemQty = parseToInt(json['jumlah'] ?? json['qty'] ?? 1);
 
     return OrderItem(
-      id: json['id'] ?? 0,
-      itemId: json['item_id'] ?? json['produk_id'] ?? 0,
+      id: parseToInt(json['id']),
+      itemId: parseToInt(json['item_id'] ?? json['itemId'] ?? json['produk_id']),
       itemType: cleanType,
-      name: json['nama_item'] ?? json['nama'] ?? 'Produk',
-      qty: parseToInt(json['jumlah'] ?? json['qty'] ?? 1),
-      price: parseToInt(json['harga_satuan'] ?? json['harga']),
-      subtotal: parseToInt(json['subtotal'] ?? (parseToInt(json['harga_satuan'] ?? json['harga']) * parseToInt(json['jumlah'] ?? 1))),
-      image: json['gambar'] ?? (json['item'] != null ? json['item']['gambar'] : null),
+      name: (json['nama_item'] ?? json['nama'] ?? json['name'] ?? 'Produk').toString(),
+      qty: itemQty > 0 ? itemQty : 1,
+      price: unitPrice,
+      subtotal: parseToInt(json['subtotal'] ?? (unitPrice * (itemQty > 0 ? itemQty : 1))),
+      image: json['gambar'] ?? json['image'] ?? (json['item'] != null ? json['item']['gambar'] : null),
     );
   }
 

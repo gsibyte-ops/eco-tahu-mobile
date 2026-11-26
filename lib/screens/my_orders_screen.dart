@@ -4,6 +4,7 @@ import '../models/order.dart';
 import '../theme/app_theme.dart';
 import 'order_detail_screen.dart';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/shimmer_skeletons.dart';
 import '../services/secure_storage_service.dart';
@@ -32,7 +33,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
   Future<void> _fetchOrders() async {
     final token = await SecureStorageService.readToken();
 
-    if (token == null) {
+    if (token == null || token.isEmpty) {
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -42,14 +43,37 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> {
       return;
     }
 
+    // 1. Tampilkan cache lokal secara instan (offline-first seperti GoPay/Shopee)
+    bool hasLocalCache = false;
+    final cachedRaw = await LocalCacheService.readJson(LocalCacheService.keyOrders);
+    if (cachedRaw is List) {
+      final cachedOrders = cachedRaw
+          .whereType<Map>()
+          .map((json) => Order.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      hasLocalCache = true;
+      if (mounted) {
+        setState(() {
+          _orders = cachedOrders;
+          _errorMessage = null;
+          _isLoading = false;
+        });
+      }
+    }
+
+    // 2. Refresh live dari server (jika offline, pertahankan data cache lokal)
     final data = await ApiService().getOrders(token);
 
     if (mounted) {
       setState(() {
         if (data != null) {
-          _orders = data.map((json) => Order.fromJson(json)).toList();
-        } else {
-          _errorMessage = 'Gagal memuat pesanan. Periksa koneksi Anda.';
+          _orders = data
+              .whereType<Map>()
+              .map((json) => Order.fromJson(Map<String, dynamic>.from(json)))
+              .toList();
+          _errorMessage = null;
+        } else if (!hasLocalCache && _orders.isEmpty) {
+          _errorMessage = 'Anda sedang offline dan belum ada riwayat pesanan yang tersimpan di perangkat ini. Hubungkan internet lalu tekan Muat Ulang.';
         }
         _isLoading = false;
       });

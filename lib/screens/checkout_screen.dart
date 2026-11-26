@@ -12,6 +12,7 @@ import '../providers/connectivity_provider.dart';
 import '../providers/order_provider.dart';
 import '../providers/store_provider.dart';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
 import '../services/local_notification_service.dart';
 import '../services/location_service.dart';
 import '../widgets/auth_guard.dart';
@@ -481,6 +482,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         items: orderItems,
       );
       orderProvider.addOrder(newOrder);
+
+      // Simpan langsung ke cache lokal & sinkronkan riwayat pesanan dari server
+      // agar langsung muncul saat buka "Pesanan Saya" walaupun user langsung offline & close app.
+      await LocalCacheService.prependOrder(newOrder.toJson());
+      ApiService().getOrders(token);
 
       cart.clearCart();
       if (!mounted) return;

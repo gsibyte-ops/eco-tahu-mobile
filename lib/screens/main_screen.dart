@@ -6,7 +6,9 @@ import '../providers/cart_provider.dart';
 import '../providers/connectivity_provider.dart';
 import '../providers/navigation_provider.dart';
 import '../providers/store_provider.dart';
+import '../services/api_service.dart';
 import '../services/local_notification_service.dart';
+import '../services/secure_storage_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/offline_banner.dart';
 import 'home_screen.dart';
@@ -60,6 +62,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         }
         await storeProvider.loadStoreInfo(force: true);
         await LocalNotificationService.instance.pollNow();
+        _warmUpOfflineCache(authProvider);
       };
       _connectivityProvider?.addReconnectListener(_reconnectCallback!);
 
@@ -74,7 +77,35 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       if (!authProvider.isAdmin) {
         await cartProvider.syncWithServer();
       }
+      _warmUpOfflineCache(authProvider);
     });
+  }
+
+  /// Pre-fetch data utama ke LocalCacheService secara paralel di background saat online
+  /// agar fitur Beranda, Produk, Limbah, Resep, Edukasi, Pesanan Saya, Notifikasi,
+  /// Profil, dan Dashboard Admin langsung bisa dibuka meskipun tiba-tiba offline & restart app.
+  Future<void> _warmUpOfflineCache(AuthProvider authProvider) async {
+    if (_connectivityProvider != null && !_connectivityProvider!.isOnline) return;
+    final api = ApiService();
+    final futures = <Future<dynamic>>[
+      api.getProducts(),
+      api.getLimbah(),
+      api.getRecipes(),
+      api.getArticles(),
+      api.getTokoInfo(),
+    ];
+    final token = await SecureStorageService.readToken();
+    if (token != null && token.isNotEmpty) {
+      futures.addAll([
+        api.getUserProfile(token),
+        api.getOrders(token),
+        api.getNotifications(token),
+      ]);
+      if (authProvider.isAdmin) {
+        futures.add(api.getAdminOverview(token));
+      }
+    }
+    await Future.wait(futures.map((f) => f.catchError((_) => null)));
   }
 
   @override

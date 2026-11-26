@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
 import '../theme/app_theme.dart';
 import '../services/secure_storage_service.dart';
 import '../widgets/offline_banner.dart';
@@ -27,8 +28,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _loadNotifications() async {
-    setState(() => _isLoading = true);
     _token = await SecureStorageService.readToken();
+
+    // 1. Tampilkan cache lokal secara instan saat offline/buka halaman
+    final cached = await LocalCacheService.readJson(LocalCacheService.keyNotifications);
+    if (cached is Map && cached['data'] is List && mounted) {
+      final cachedList = (cached['data'] as List)
+          .whereType<Map>()
+          .map((json) => NotificationModel.fromJson(Map<String, dynamic>.from(json)))
+          .toList();
+      setState(() {
+        _notifications = cachedList;
+        _isLoading = false;
+      });
+    } else if (_notifications.isEmpty && mounted) {
+      setState(() => _isLoading = true);
+    }
 
     if (_token != null && _token!.isNotEmpty) {
       final res = await _apiService.getNotifications(_token!);

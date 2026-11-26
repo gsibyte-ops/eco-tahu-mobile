@@ -123,6 +123,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     if (result['success'] == true) {
       setState(() => _isUploaded = true);
+      ApiService().getOrders(token);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Row(

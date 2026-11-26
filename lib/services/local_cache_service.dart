@@ -56,6 +56,27 @@ class LocalCacheService {
     return null;
   }
 
+  /// Sisipkan pesanan baru di urutan paling atas cache lokal agar langsung
+  /// muncul di "Pesanan Saya" meskipun user langsung mematikan internet & restart app.
+  static Future<void> prependOrder(Map<String, dynamic> orderJson) async {
+    try {
+      final existing = await readJson(keyOrders);
+      final List<dynamic> list = existing is List ? List<dynamic>.from(existing) : <dynamic>[];
+      final newId = orderJson['id']?.toString();
+      final newKode = (orderJson['kode_pesanan'] ?? orderJson['orderNumber'])?.toString();
+      list.removeWhere((item) {
+        if (item is! Map) return false;
+        final idMatch = newId != null && newId != '0' && item['id']?.toString() == newId;
+        final kodeMatch = newKode != null &&
+            newKode.isNotEmpty &&
+            (item['kode_pesanan']?.toString() == newKode || item['orderNumber']?.toString() == newKode);
+        return idMatch || kodeMatch;
+      });
+      list.insert(0, orderJson);
+      await saveJson(keyOrders, list);
+    } catch (_) {}
+  }
+
   /// Hapus cache yang bersifat privat per akun saat logout.
   static Future<void> clearUserPrivateCache() async {
     try {
